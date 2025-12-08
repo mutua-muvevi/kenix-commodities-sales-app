@@ -1,0 +1,16 @@
+{
+  "name": "@kenix/shared-types",
+  "version": "1.0.0",
+  "description": "Shared TypeScript types for Kenix Commodities applications",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {
+    "type-check": "tsc --noEmit"
+  },
+  "keywords": ["kenix", "types", "typescript"],
+  "author": "Kenix Commodities",
+  "license": "PRIVATE",
+  "devDependencies": {
+    "typescript": "^5.8.3"
+  }
+}

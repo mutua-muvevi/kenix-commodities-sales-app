@@ -1,0 +1,87 @@
+{
+  "expo": {
+    "name": "Kenix Rider",
+    "slug": "kenix-rider",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "scheme": "kenix-rider",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0066CC"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.kenix.rider",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "Kenix Rider needs your location to show your position on the map and navigate to delivery locations.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "Kenix Rider needs your location in the background to track deliveries and update your route progress.",
+        "NSLocationAlwaysUsageDescription": "Kenix Rider needs your location in the background to track deliveries and update your route progress.",
+        "NSCameraUsageDescription": "Kenix Rider needs camera access to take photos of delivered goods.",
+        "NSPhotoLibraryUsageDescription": "Kenix Rider needs photo library access to select delivery photos.",
+        "UIBackgroundModes": ["location", "fetch"]
+      }
+    },
+    "android": {
+      "package": "com.kenix.rider",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0066CC"
+      },
+      "edgeToEdgeEnabled": true,
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_BACKGROUND_LOCATION",
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "FOREGROUND_SERVICE",
+        "FOREGROUND_SERVICE_LOCATION"
+      ],
+      "config": {
+        "googleMaps": {
+          "apiKey": "YOUR_GOOGLE_MAPS_API_KEY"
+        }
+      }
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Allow Kenix Rider to use your location to track deliveries.",
+          "locationAlwaysPermission": "Allow Kenix Rider to use your location in the background to track deliveries.",
+          "locationWhenInUsePermission": "Allow Kenix Rider to use your location to navigate to delivery locations.",
+          "isAndroidBackgroundLocationEnabled": true,
+          "isAndroidForegroundServiceEnabled": true
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow Kenix Rider to access your camera to take photos of delivered goods."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow Kenix Rider to access your photos to select delivery images.",
+          "cameraPermission": "Allow Kenix Rider to access your camera to take delivery photos."
+        }
+      ],
+      "expo-secure-store"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "your-project-id"
+      }
+    }
+  }
+}

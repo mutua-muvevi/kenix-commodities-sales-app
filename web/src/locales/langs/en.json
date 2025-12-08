@@ -1,0 +1,87 @@
+{
+	"breadcrumbs": {
+		"business": {
+			"home": "Home",
+			"product": "Product",
+			"deliveries": "Deliveries",
+			"customers": "Customers",
+			"transporters": "Transporters"
+		},
+		"transporter": {
+			"home": "Home",
+			"vehicles": "Vehicles",
+			"shipment": "Shipment",
+			"drivers": "Drivers",
+			"businesses": "Businesses"
+		},
+		"driver": {
+			"home": "Home",
+			"routes": "Routes"
+		},
+		"customer": {
+			"home": "Home",
+			"orders": "Orders"
+		}
+	},
+	"navigation": {
+		"side": {
+			"business": {
+				"home": "Home",
+				"product": "Product",
+				"deliveries": "Deliveries",
+				"customers": "Customers",
+				"transporters": "Transporters"
+			},
+			"transporter": {
+				"home": "Home",
+				"vehicles": "Vehicles",
+				"shipment": "Shipment",
+				"drivers": "Drivers",
+				"businesses": "Businesses"
+			},
+			"driver": {
+				"home": "Home"
+			},
+			"customer": {
+				"home": "Home"
+			}
+		},
+		"top": {
+			"languages": {
+				"arabic": "Arabic",
+				"chinese": "Chinese",
+				"french": "French",
+				"vietnamese": "Vietnamese",
+				"english": "English"
+			},
+			"notifications": "Notifications",
+			"contacts": "Contacts",
+			"settings": {
+				"mode": "Mode",
+				"direction": "Direction",
+				"contrast": "Contrast",
+				"presets": "Presets",
+				"layout": "Layout",
+				"fullscreen": "Fullscreen",
+				"exitFullScreen": "Exit Fullscreen",
+				"settings": "Settings"
+			},
+			"account": {
+				"home": "Home",
+				"logout": "Logout",
+				"profile": "Profile",
+				"settings": "Settings"
+			}
+		},
+		"public": {
+			"home": "Home",
+			"about": "About",
+			"business": "Business",
+			"truckOwner": "Truck Owner",
+			"pricing": "Pricing",
+			"articles": "Articles",
+			"login": "Login",
+			"purchase": "Purchase"
+		}
+	}
+}

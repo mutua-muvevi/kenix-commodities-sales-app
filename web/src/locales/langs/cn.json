@@ -1,0 +1,87 @@
+{
+	"breadcrumbs": {
+		"business": {
+			"home": "首页",
+			"product": "产品",
+			"deliveries": "送货",
+			"customers": "客户",
+			"transporters": "运输商"
+		},
+		"transporter": {
+			"home": "首页",
+			"vehicles": "车辆",
+			"shipment": "货物",
+			"drivers": "司机",
+			"businesses": "企业"
+		},
+		"driver": {
+			"home": "首页",
+			"routes": "路线"
+		},
+		"customer": {
+			"home": "首页",
+			"orders": "订单"
+		}
+	},
+	"navigation": {
+		"side": {
+			"business": {
+				"home": "首页",
+				"product": "产品",
+				"deliveries": "送货",
+				"customers": "客户",
+				"transporters": "运输商"
+			},
+			"transporter": {
+				"home": "首页",
+				"vehicles": "车辆",
+				"shipment": "货物",
+				"drivers": "司机",
+				"businesses": "企业"
+			},
+			"driver": {
+				"home": "首页"
+			},
+			"customer": {
+				"home": "首页"
+			}
+		},
+		"top": {
+			"languages": {
+				"arabic": "阿拉伯语",
+				"chinese": "中文",
+				"french": "法语",
+				"vietnamese": "越南语",
+				"english": "英语"
+			},
+			"notifications": "通知",
+			"contacts": "联系人",
+			"settings": {
+				"mode": "模式",
+				"direction": "方向",
+				"contrast": "对比度",
+				"presets": "预设",
+				"layout": "布局",
+				"fullscreen": "全屏",
+				"exitFullScreen": "退出全屏",
+				"settings": "设置"
+			},
+			"account": {
+				"home": "主页",
+				"logout": "登出",
+				"profile": "个人资料",
+				"settings": "设置"
+			}
+		},
+		"public": {
+			"home": "主页",
+			"about": "关于",
+			"business": "企业",
+			"truckOwner": "卡车车主",
+			"pricing": "定价",
+			"articles": "文章",
+			"login": "登录",
+			"purchase": "购买"
+		}
+	}
+}

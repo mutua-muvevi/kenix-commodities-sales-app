@@ -1,0 +1,87 @@
+{
+	"breadcrumbs": {
+		"business": {
+			"home": "Trang chủ",
+			"product": "Sản phẩm",
+			"deliveries": "Giao hàng",
+			"customers": "Khách hàng",
+			"transporters": "Nhà vận chuyển"
+		},
+		"transporter": {
+			"home": "Trang chủ",
+			"vehicles": "Phương tiện",
+			"shipment": "Lô hàng",
+			"drivers": "Tài xế",
+			"businesses": "Doanh nghiệp"
+		},
+		"driver": {
+			"home": "Trang chủ",
+			"routes": "Tuyến đường"
+		},
+		"customer": {
+			"home": "Trang chủ",
+			"orders": "Đơn hàng"
+		}
+	},
+	"navigation": {
+		"side": {
+			"business": {
+				"home": "Trang chủ",
+				"product": "Sản phẩm",
+				"deliveries": "Giao hàng",
+				"customers": "Khách hàng",
+				"transporters": "Nhà vận chuyển"
+			},
+			"transporter": {
+				"home": "Trang chủ",
+				"vehicles": "Phương tiện",
+				"shipment": "Lô hàng",
+				"drivers": "Tài xế",
+				"businesses": "Doanh nghiệp"
+			},
+			"driver": {
+				"home": "Trang chủ"
+			},
+			"customer": {
+				"home": "Trang chủ"
+			}
+		},
+		"top": {
+			"languages": {
+				"arabic": "Tiếng Ả Rập",
+				"chinese": "Tiếng Trung",
+				"french": "Tiếng Pháp",
+				"vietnamese": "Tiếng Việt",
+				"english": "Tiếng Anh"
+			},
+			"notifications": "Thông báo",
+			"contacts": "Liên hệ",
+			"settings": {
+				"mode": "Chế độ",
+				"direction": "Hướng",
+				"contrast": "Độ tương phản",
+				"presets": "Cài đặt trước",
+				"layout": "Bố cục",
+				"fullscreen": "Toàn màn hình",
+				"exitFullScreen": "Thoát toàn màn hình",
+				"settings": "Cài đặt"
+			},
+			"account": {
+				"home": "Trang chủ",
+				"logout": "đăng xuất",
+				"profile": "Hồ sơ",
+				"settings": "Cài đặt"
+			}
+		},
+		"public": {
+			"home": "Trang chủ",
+			"about": "Giới thiệu",
+			"business": "Doanh nghiệp",
+			"truckOwner": "Chủ xe tải",
+			"pricing": "Giá cả",
+			"articles": "Bài viết",
+			"login": "Đăng nhập",
+			"purchase": "Mua hàng"
+		}
+	}
+}

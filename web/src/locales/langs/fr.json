@@ -1,0 +1,87 @@
+{
+	"breadcrumbs": {
+		"business": {
+			"home": "Accueil",
+			"product": "Produit",
+			"deliveries": "Livraisons",
+			"customers": "Clients",
+			"transporters": "Transporteurs"
+		},
+		"transporter": {
+			"home": "Accueil",
+			"vehicles": "Véhicules",
+			"shipment": "Expédition",
+			"drivers": "Chauffeurs",
+			"businesses": "Entreprises"
+		},
+		"driver": {
+			"home": "Accueil",
+			"routes": "Itinéraires"
+		},
+		"customer": {
+			"home": "Accueil",
+			"orders": "Commandes"
+		}
+	},
+	"navigation": {
+		"side": {
+			"business": {
+				"home": "Accueil",
+				"product": "Produit",
+				"deliveries": "Livraisons",
+				"customers": "Clients",
+				"transporters": "Transporteurs"
+			},
+			"transporter": {
+				"home": "Accueil",
+				"vehicles": "Véhicules",
+				"shipment": "Expédition",
+				"drivers": "Chauffeurs",
+				"businesses": "Entreprises"
+			},
+			"driver": {
+				"home": "Accueil"
+			},
+			"customer": {
+				"home": "Accueil"
+			}
+		},
+		"top": {
+			"languages": {
+				"arabic": "Arabe",
+				"chinese": "Chinois",
+				"french": "Français",
+				"vietnamese": "Vietnamien",
+				"english": "Anglais"
+			},
+			"notifications": "Notifications",
+			"contacts": "Contacts",
+			"settings": {
+				"mode": "Mode",
+				"direction": "Direction",
+				"contrast": "Contraste",
+				"presets": "Préréglages",
+				"layout": "Disposition",
+				"fullscreen": "Plein écran",
+				"exitFullScreen": "Quitter le plein écran",
+				"settings": "Paramètres"
+			},
+			"account": {
+				"home": "Accueil",
+				"logout": "Déconnexion",
+				"profile": "Profil",
+				"settings": "Paramètres"
+			}
+		},
+		"public": {
+			"home": "Accueil",
+			"about": "À propos",
+			"business": "Entreprise",
+			"truckOwner": "Propriétaire de camion",
+			"pricing": "Tarification",
+			"articles": "Articles",
+			"login": "Connexion",
+			"purchase": "Achat"
+		}
+	}
+}

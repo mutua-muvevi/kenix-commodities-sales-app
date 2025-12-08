@@ -1,0 +1,87 @@
+{
+	"breadcrumbs": {
+		"business": {
+			"home": "Inicio",
+			"product": "Producto",
+			"deliveries": "Entregas",
+			"customers": "Clientes",
+			"transporters": "Transportistas"
+		},
+		"transporter": {
+			"home": "Inicio",
+			"vehicles": "Vehículos",
+			"shipment": "Envío",
+			"drivers": "Conductores",
+			"businesses": "Negocios"
+		},
+		"driver": {
+			"home": "Inicio",
+			"routes": "Rutas"
+		},
+		"customer": {
+			"home": "Inicio",
+			"orders": "Pedidos"
+		}
+	},
+	"navigation": {
+		"side": {
+			"business": {
+				"home": "Inicio",
+				"product": "Producto",
+				"deliveries": "Entregas",
+				"customers": "Clientes",
+				"transporters": "Transportistas"
+			},
+			"transporter": {
+				"home": "Inicio",
+				"vehicles": "Vehículos",
+				"shipment": "Envío",
+				"drivers": "Conductores",
+				"businesses": "Negocios"
+			},
+			"driver": {
+				"home": "Inicio"
+			},
+			"customer": {
+				"home": "Inicio"
+			}
+		},
+		"top": {
+			"languages": {
+				"arabic": "Árabe",
+				"chinese": "Chino",
+				"french": "Francés",
+				"vietnamese": "Vietnamita",
+				"english": "Inglés"
+			},
+			"notifications": "Notificaciones",
+			"contacts": "Contactos",
+			"settings": {
+				"mode": "Modo",
+				"direction": "Dirección",
+				"contrast": "Contraste",
+				"presets": "Ajustes preestablecidos",
+				"layout": "Disposición",
+				"fullscreen": "Pantalla completa",
+				"exitFullScreen": "Salir de pantalla completa",
+				"settings": "Configuración"
+			},
+			"account": {
+				"home": "Inicio",
+				"logout": "Cerrar sesión",
+				"profile": "Perfil",
+				"settings": "Configuración"
+			}
+		},
+		"public": {
+			"home": "Inicio",
+			"about": "Acerca de",
+			"business": "Negocios",
+			"truckOwner": "Propietario de camión",
+			"pricing": "Precios",
+			"articles": "Artículos",
+			"login": "Iniciar sesión",
+			"purchase": "Comprar"
+		}
+	}
+}

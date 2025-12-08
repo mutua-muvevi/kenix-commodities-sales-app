@@ -1,0 +1,87 @@
+{
+	"breadcrumbs": {
+		"business": {
+			"home": "ホーム",
+			"product": "商品",
+			"deliveries": "配送",
+			"customers": "顧客",
+			"transporters": "運送業者"
+		},
+		"transporter": {
+			"home": "ホーム",
+			"vehicles": "車両",
+			"shipment": "配送",
+			"drivers": "ドライバー",
+			"businesses": "企業"
+		},
+		"driver": {
+			"home": "ホーム",
+			"routes": "ルート"
+		},
+		"customer": {
+			"home": "ホーム",
+			"orders": "注文"
+		}
+	},
+	"navigation": {
+		"side": {
+			"business": {
+				"home": "ホーム",
+				"product": "商品",
+				"deliveries": "配送",
+				"customers": "顧客",
+				"transporters": "運送業者"
+			},
+			"transporter": {
+				"home": "ホーム",
+				"vehicles": "車両",
+				"shipment": "配送",
+				"drivers": "ドライバー",
+				"businesses": "企業"
+			},
+			"driver": {
+				"home": "ホーム"
+			},
+			"customer": {
+				"home": "ホーム"
+			}
+		},
+		"top": {
+			"languages": {
+				"arabic": "アラビア語",
+				"chinese": "中国語",
+				"french": "フランス語",
+				"vietnamese": "ベトナム語",
+				"english": "英語"
+			},
+			"notifications": "通知",
+			"contacts": "連絡先",
+			"settings": {
+				"mode": "モード",
+				"direction": "方向",
+				"contrast": "コントラスト",
+				"presets": "プリセット",
+				"layout": "レイアウト",
+				"fullscreen": "全画面",
+				"exitFullScreen": "全画面から出る",
+				"settings": "設定"
+			},
+			"account": {
+				"home": "ホーム",
+				"logout": "ログアウト",
+				"profile": "プロフィール",
+				"settings": "設定"
+			}
+		},
+		"public": {
+			"home": "ホーム",
+			"about": "紹介",
+			"business": "ビジネス",
+			"truckOwner": "トラックオーナー",
+			"pricing": "料金",
+			"articles": "記事",
+			"login": "ログイン",
+			"purchase": "購入"
+		}
+	}
+}

@@ -1,0 +1,87 @@
+{
+	"breadcrumbs": {
+		"business": {
+			"home": "الصفحة الرئيسية",
+			"product": "المنتجات",
+			"deliveries": "التوصيلات",
+			"customers": "العملاء",
+			"transporters": "الناقلين"
+		},
+		"transporter": {
+			"home": "الصفحة الرئيسية",
+			"vehicles": "المركبات",
+			"shipment": "الشحنة",
+			"drivers": "السائقين",
+			"businesses": "الشركات"
+		},
+		"driver": {
+			"home": "الصفحة الرئيسية",
+			"routes": "المسارات"
+		},
+		"customer": {
+			"home": "الصفحة الرئيسية",
+			"orders": "الطلبات"
+		}
+	},
+
+	"navigation": {
+		"side": {
+			"business": {
+				"home": "الصفحة الرئيسية",
+				"product": "المنتجات",
+				"deliveries": "التوصيلات",
+				"customers": "العملاء",
+				"transporters": "الناقلين"
+			},
+			"transporter": {
+				"home": "الصفحة الرئيسية",
+				"vehicles": "المركبات",
+				"shipment": "الشحنة",
+				"drivers": "السائقين",
+				"businesses": "الشركات"
+			},
+			"driver": {
+				"home": "الصفحة الرئيسية"
+			},
+			"customer": {
+				"home": "الصفحة الرئيسية"
+			}
+		},
+		"top": {
+			"languages": {
+				"arabic": "العربية",
+				"chinese": "الصينية",
+				"french": "الفرنسية",
+				"vietnamese": "الفيتنامية",
+				"english": "الإنجليزية"
+			},
+			"notifications": "الإشعارات",
+			"contacts": "جهات الاتصال",
+			"settings": {
+				"mode": "الوضع",
+				"direction": "الاتجاه",
+				"contrast": "التباين",
+				"presets": "الإعدادات المسبقة",
+				"layout": "التخطيط",
+				"fullscreen": "ملء الشاشة",
+				"settings": "الإعدادات"
+			},
+			"account": {
+				"home": "الصفحة الرئيسية",
+				"logout": "تسجيل الخروج",
+				"profile": "الملف الشخصي",
+				"settings": "الإعدادات"
+			}
+		},
+		"public": {
+			"home": "الصفحة الرئيسية",
+			"about": "حول",
+			"business": "الأعمال",
+			"truckOwner": "مالك الشاحنة",
+			"pricing": "التسعير",
+			"articles": "المقالات",
+			"login": "تسجيل الدخول",
+			"purchase": "الشراء"
+		}
+	}
+}
