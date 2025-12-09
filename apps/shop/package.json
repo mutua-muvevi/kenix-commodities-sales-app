@@ -1,6 +1,6 @@
 {
   "name": "shop",
-  "main": "expo-router/entry",
+  "main": "./index.ts",
   "version": "1.0.0",
   "scripts": {
     "start": "expo start",
@@ -60,6 +60,8 @@
     "react-native-webview": "13.15.0",
     "react-native-worklets": "0.5.1",
     "react-native-worklets-core": "^1.6.2",
+    "socket.io-client": "^4.8.1",
+    "text-encoding": "^0.7.0",
     "yup": "^1.7.0",
     "zustand": "^5.0.7"
   },

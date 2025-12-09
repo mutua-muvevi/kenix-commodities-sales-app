@@ -132,7 +132,7 @@ const OrdersScreen = () => {
 		filterChip: {
 			paddingHorizontal: theme.spacing.md,
 			paddingVertical: theme.spacing.sm,
-			borderRadius: theme.radius.full,
+			borderRadius: 999, // Full rounding (pill shape)
 			borderWidth: 1,
 			borderColor: theme.palette.divider,
 			backgroundColor: theme.palette.background.surface,
@@ -176,7 +176,7 @@ const OrdersScreen = () => {
 			alignItems: "center",
 			paddingHorizontal: theme.spacing.sm,
 			paddingVertical: theme.spacing.xs,
-			borderRadius: theme.radius.sm,
+			borderRadius: theme.borderRadius.sm,
 			gap: 4,
 		},
 		statusText: {
@@ -217,7 +217,7 @@ const OrdersScreen = () => {
 			paddingVertical: theme.spacing.sm,
 			paddingHorizontal: theme.spacing.md,
 			backgroundColor: `${theme.palette.primary.main}10`,
-			borderRadius: theme.radius.md,
+			borderRadius: theme.borderRadius.md,
 		},
 		viewButtonText: {
 			...theme.typography.body2,

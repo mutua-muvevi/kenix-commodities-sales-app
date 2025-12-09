@@ -164,7 +164,7 @@ const LoansScreen = () => {
 		},
 		amountContainer: {
 			backgroundColor: `${theme.palette.primary.main}15`,
-			borderRadius: theme.radius.md,
+			borderRadius: theme.borderRadius.md,
 			padding: theme.spacing.lg,
 			marginVertical: theme.spacing.md,
 		},
@@ -216,7 +216,7 @@ const LoansScreen = () => {
 		statusBadge: {
 			paddingHorizontal: theme.spacing.sm,
 			paddingVertical: theme.spacing.xs,
-			borderRadius: theme.radius.sm,
+			borderRadius: theme.borderRadius.sm,
 		},
 		statusText: {
 			...theme.typography.caption,

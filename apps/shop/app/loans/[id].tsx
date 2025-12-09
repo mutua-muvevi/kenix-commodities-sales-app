@@ -175,7 +175,7 @@ const LoanDetailsScreen = () => {
 		statusBadge: {
 			paddingHorizontal: theme.spacing.md,
 			paddingVertical: theme.spacing.sm,
-			borderRadius: theme.radius.md,
+			borderRadius: theme.borderRadius.md,
 			alignSelf: "flex-start",
 			marginBottom: theme.spacing.lg,
 		},
@@ -244,7 +244,7 @@ const LoanDetailsScreen = () => {
 			...theme.typography.body1,
 			color: theme.palette.text.primary,
 			backgroundColor: theme.palette.background.surface,
-			borderRadius: theme.radius.md,
+			borderRadius: theme.borderRadius.md,
 			padding: theme.spacing.md,
 			borderWidth: 1,
 			borderColor: theme.palette.divider,

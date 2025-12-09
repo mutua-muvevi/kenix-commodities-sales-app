@@ -6,7 +6,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import { SafeArea, Container } from "../../components/layout";
 import { Card, SearchBar } from "../../components/ui";
-import { ProductCard } from "../../components/product";
+import { ProductCard } from "../../components/product/ProductCard";
 import { useTheme } from "../../hooks";
 // Note: This import will be uncommented when stores are fixed
 // import { useProducts, useOffers } from "../../store";

@@ -234,7 +234,7 @@ const OrderTrackingScreen = () => {
 			alignSelf: "flex-start",
 			paddingHorizontal: theme.spacing.md,
 			paddingVertical: theme.spacing.sm,
-			borderRadius: theme.radius.md,
+			borderRadius: theme.borderRadius.md,
 			gap: theme.spacing.xs,
 			marginTop: theme.spacing.sm,
 		},
@@ -245,7 +245,7 @@ const OrderTrackingScreen = () => {
 		},
 		mapContainer: {
 			height: MAP_HEIGHT,
-			borderRadius: theme.radius.lg,
+			borderRadius: theme.borderRadius.lg,
 			overflow: "hidden",
 			marginBottom: theme.spacing.md,
 		},
@@ -258,7 +258,7 @@ const OrderTrackingScreen = () => {
 			justifyContent: "space-between",
 			padding: theme.spacing.md,
 			backgroundColor: `${theme.palette.primary.main}10`,
-			borderRadius: theme.radius.md,
+			borderRadius: theme.borderRadius.md,
 			marginBottom: theme.spacing.md,
 		},
 		etaText: {
@@ -294,7 +294,7 @@ const OrderTrackingScreen = () => {
 			paddingHorizontal: theme.spacing.md,
 			paddingVertical: theme.spacing.sm,
 			backgroundColor: theme.palette.success.main,
-			borderRadius: theme.radius.md,
+			borderRadius: theme.borderRadius.md,
 			gap: theme.spacing.xs,
 		},
 		callButtonText: {
@@ -368,7 +368,7 @@ const OrderTrackingScreen = () => {
 			textAlign: "center",
 			padding: theme.spacing.lg,
 			backgroundColor: theme.palette.background.surface,
-			borderRadius: theme.radius.md,
+			borderRadius: theme.borderRadius.md,
 		},
 	});
 

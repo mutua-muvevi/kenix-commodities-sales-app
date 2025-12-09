@@ -174,7 +174,7 @@ const AirtimeScreen = () => {
 		tabContainer: {
 			flexDirection: "row",
 			backgroundColor: theme.palette.background.surface,
-			borderRadius: theme.radius.md,
+			borderRadius: theme.borderRadius.md,
 			padding: 4,
 			marginBottom: theme.spacing.lg,
 		},
@@ -182,7 +182,7 @@ const AirtimeScreen = () => {
 			flex: 1,
 			paddingVertical: theme.spacing.sm,
 			alignItems: "center",
-			borderRadius: theme.radius.sm,
+			borderRadius: theme.borderRadius.sm,
 		},
 		tabActive: {
 			backgroundColor: theme.palette.primary.main,
@@ -206,7 +206,7 @@ const AirtimeScreen = () => {
 			alignItems: "center",
 			justifyContent: "center",
 			paddingVertical: theme.spacing.md,
-			borderRadius: theme.radius.md,
+			borderRadius: theme.borderRadius.md,
 			borderWidth: 2,
 			borderColor: theme.palette.divider,
 			backgroundColor: theme.palette.background.surface,
@@ -233,7 +233,7 @@ const AirtimeScreen = () => {
 			...theme.typography.body1,
 			color: theme.palette.text.primary,
 			backgroundColor: theme.palette.background.surface,
-			borderRadius: theme.radius.md,
+			borderRadius: theme.borderRadius.md,
 			padding: theme.spacing.md,
 			borderWidth: 1,
 			borderColor: theme.palette.divider,
@@ -249,7 +249,7 @@ const AirtimeScreen = () => {
 		quickAmountButton: {
 			paddingVertical: theme.spacing.sm,
 			paddingHorizontal: theme.spacing.lg,
-			borderRadius: theme.radius.md,
+			borderRadius: theme.borderRadius.md,
 			borderWidth: 1,
 			borderColor: theme.palette.divider,
 			backgroundColor: theme.palette.background.surface,
@@ -282,7 +282,7 @@ const AirtimeScreen = () => {
 		statusBadge: {
 			paddingHorizontal: theme.spacing.sm,
 			paddingVertical: theme.spacing.xs,
-			borderRadius: theme.radius.sm,
+			borderRadius: theme.borderRadius.sm,
 		},
 		statusText: {
 			...theme.typography.caption,

@@ -4,7 +4,7 @@ import Animated, { FadeInDown, FadeInRight } from "react-native-reanimated";
 import { LinearGradient } from "expo-linear-gradient";
 import { SafeArea, Container } from "../../components/layout";
 import { SearchBar } from "../../components/ui";
-import { ProductCard } from "../../components/product";
+import { ProductCard } from "../../components/product/ProductCard";
 import { CategorySlider } from "../../components/category/CategorySlider";
 import { useTheme } from "../../hooks";
 import { useProducts, useCategories, useAuth, useCart } from "../../store";

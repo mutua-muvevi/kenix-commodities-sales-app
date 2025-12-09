@@ -163,7 +163,7 @@ const ApplyLoanScreen = () => {
 			...theme.typography.body1,
 			color: theme.palette.text.primary,
 			backgroundColor: theme.palette.background.surface,
-			borderRadius: theme.radius.md,
+			borderRadius: theme.borderRadius.md,
 			padding: theme.spacing.md,
 			borderWidth: 1,
 			borderColor: theme.palette.divider,
@@ -193,7 +193,7 @@ const ApplyLoanScreen = () => {
 		durationButton: {
 			paddingVertical: theme.spacing.sm,
 			paddingHorizontal: theme.spacing.lg,
-			borderRadius: theme.radius.md,
+			borderRadius: theme.borderRadius.md,
 			borderWidth: 2,
 			borderColor: theme.palette.divider,
 			backgroundColor: theme.palette.background.surface,
