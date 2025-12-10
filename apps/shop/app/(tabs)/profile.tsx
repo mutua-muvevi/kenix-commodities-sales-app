@@ -35,7 +35,7 @@ const ProfileScreen = () => {
 	};
 
 	const handleNavigate = (path: string) => {
-		console.log(`Navigate to: ${path}`);
+		router.push(path as any);
 	};
 
 	const ProfileMenuItem = ({
@@ -256,14 +256,14 @@ const ProfileScreen = () => {
 								icon="person-outline"
 								title="Edit Profile"
 								subtitle="Update your personal information"
-								onPress={() => console.log("Edit Profile")}
+								onPress={() => handleNavigate("/account/edit-profile")}
 							/>
 
 							<ProfileMenuItem
 								icon="location-outline"
 								title="Addresses"
 								subtitle="Manage delivery addresses"
-								onPress={() => console.log("Addresses")}
+								onPress={() => handleNavigate("/account/addresses")}
 							/>
 
 							<ProfileMenuItem
@@ -291,14 +291,14 @@ const ProfileScreen = () => {
 								icon="heart-outline"
 								title="Favorites"
 								subtitle={`${favoriteCount} saved items`}
-								onPress={() => console.log("Favorites")}
+								onPress={() => handleNavigate("/account/favorites")}
 							/>
 
 							<ProfileMenuItem
 								icon="notifications-outline"
 								title="Notifications"
 								subtitle="Manage your preferences"
-								onPress={() => console.log("Notifications")}
+								onPress={() => handleNavigate("/account/notifications")}
 							/>
 						</View>
 					</Animated.View>
