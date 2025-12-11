@@ -4,30 +4,62 @@
     "strict": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./*"],
-      "@/components": ["./components"],
-      "@/components/*": ["./components/*"],
-      "@/theme": ["./theme"],
-      "@/theme/*": ["./theme/*"],
-      "@/types": ["./types"],
-      "@/types/*": ["./types/*"],
-      "@/store": ["./store"],
-      "@/store/*": ["./store/*"],
-      "@/services": ["./services"],
-      "@/services/*": ["./services/*"],
-      "@/hooks": ["./hooks"],
-      "@/hooks/*": ["./hooks/*"],
-      "@/utils": ["./utils"],
-      "@/utils/*": ["./utils/*"],
-      "@/constants": ["./constants"],
-      "@/constants/*": ["./constants/*"]
+      "@/*": [
+        "./*"
+      ],
+      "@/components": [
+        "./components"
+      ],
+      "@/components/*": [
+        "./components/*"
+      ],
+      "@/theme": [
+        "./theme"
+      ],
+      "@/theme/*": [
+        "./theme/*"
+      ],
+      "@/types": [
+        "./types"
+      ],
+      "@/types/*": [
+        "./types/*"
+      ],
+      "@/store": [
+        "./store"
+      ],
+      "@/store/*": [
+        "./store/*"
+      ],
+      "@/services": [
+        "./services"
+      ],
+      "@/services/*": [
+        "./services/*"
+      ],
+      "@/hooks": [
+        "./hooks"
+      ],
+      "@/hooks/*": [
+        "./hooks/*"
+      ],
+      "@/utils": [
+        "./utils"
+      ],
+      "@/utils/*": [
+        "./utils/*"
+      ],
+      "@/constants": [
+        "./constants"
+      ],
+      "@/constants/*": [
+        "./constants/*"
+      ]
     }
   },
   "include": [
     "**/*.ts",
-    "**/*.tsx",
-    ".expo/types/**/*.ts",
-    "expo-env.d.ts"
+    "**/*.tsx"
   ],
   "exclude": [
     "node_modules"

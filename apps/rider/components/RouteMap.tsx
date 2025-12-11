@@ -219,10 +219,9 @@ export default function RouteMap({
               latitude: s.location.coordinates[1],
               longitude: s.location.coordinates[0],
             }))}
-            strokeColor="#0066CC"
+            strokeColor="rgba(0, 102, 204, 0.5)"
             strokeWidth={3}
             lineDashPattern={[5, 5]}
-            opacity={0.5}
           />
         )}
       </MapView>

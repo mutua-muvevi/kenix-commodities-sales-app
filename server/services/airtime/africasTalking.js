@@ -2,18 +2,43 @@
  * Africa's Talking Airtime Service
  *
  * Handles airtime distribution using Africa's Talking API
+ * Gracefully handles missing credentials - server will continue to run
  */
 
-const AfricasTalking = require('africastalking');
+const logger = require('../../utils/logger');
 
-// Initialize Africa's Talking
-const africastalking = AfricasTalking({
-	apiKey: process.env.AFRICASTALKING_API_KEY,
-	username: process.env.AFRICASTALKING_USERNAME || 'sandbox',
-});
+// Initialize Africa's Talking with error handling
+let airtime = null;
+let isConfigured = false;
 
-// Get airtime service
-const airtime = africastalking.AIRTIME;
+try {
+	const apiKey = process.env.AFRICASTALKING_API_KEY;
+	const username = process.env.AFRICASTALKING_USERNAME || 'sandbox';
+
+	if (!apiKey) {
+		logger.warn('Africa\'s Talking API key not configured. Airtime service will be disabled.');
+	} else {
+		const AfricasTalking = require('africastalking');
+		const africastalking = AfricasTalking({
+			apiKey,
+			username,
+		});
+		airtime = africastalking.AIRTIME;
+		isConfigured = true;
+		logger.info('Africa\'s Talking Airtime service initialized successfully');
+	}
+} catch (error) {
+	logger.error('Failed to initialize Africa\'s Talking Airtime service:', error.message);
+	logger.warn('Airtime service will be disabled. Server will continue to run.');
+}
+
+/**
+ * Check if airtime service is configured
+ * @returns {boolean} Whether the service is available
+ */
+const isServiceAvailable = () => {
+	return isConfigured && airtime !== null;
+};
 
 /**
  * Format phone number to international format (+254...)
@@ -49,6 +74,19 @@ const formatPhoneNumber = (phoneNumber) => {
  */
 const sendAirtime = async (phoneNumber, amount, currencyCode = 'KES') => {
 	try {
+		// Check if service is available
+		if (!isServiceAvailable()) {
+			logger.warn('Airtime service not configured. Request skipped.');
+			return {
+				success: false,
+				phoneNumber,
+				amount,
+				currencyCode,
+				error: 'Airtime service not configured',
+				message: 'Airtime service is currently unavailable. Please configure Africa\'s Talking credentials.',
+			};
+		}
+
 		const formattedPhone = formatPhoneNumber(phoneNumber);
 
 		const options = {
@@ -61,11 +99,11 @@ const sendAirtime = async (phoneNumber, amount, currencyCode = 'KES') => {
 			],
 		};
 
-		console.log(`Sending airtime: ${currencyCode} ${amount} to ${formattedPhone}`);
+		logger.info(`Sending airtime: ${currencyCode} ${amount} to ${formattedPhone}`);
 
 		const response = await airtime.send(options);
 
-		console.log('Airtime Response:', JSON.stringify(response, null, 2));
+		logger.debug('Airtime Response:', JSON.stringify(response, null, 2));
 
 		// Check if successful
 		if (response.responses && response.responses.length > 0) {
@@ -104,7 +142,7 @@ const sendAirtime = async (phoneNumber, amount, currencyCode = 'KES') => {
 			rawResponse: response,
 		};
 	} catch (error) {
-		console.error('Africa\'s Talking Airtime Error:', error);
+		logger.error('Africa\'s Talking Airtime Error:', error);
 
 		return {
 			success: false,
@@ -124,6 +162,21 @@ const sendAirtime = async (phoneNumber, amount, currencyCode = 'KES') => {
  */
 const checkBalance = async () => {
 	try {
+		// Check if service is available
+		if (!isServiceAvailable()) {
+			return {
+				success: false,
+				error: 'Airtime service not configured',
+				message: 'Cannot check balance - Africa\'s Talking is not configured',
+			};
+		}
+
+		// Re-initialize to get application data
+		const AfricasTalking = require('africastalking');
+		const africastalking = AfricasTalking({
+			apiKey: process.env.AFRICASTALKING_API_KEY,
+			username: process.env.AFRICASTALKING_USERNAME || 'sandbox',
+		});
 		const application = africastalking.APPLICATION;
 		const response = await application.fetchApplicationData();
 
@@ -132,7 +185,7 @@ const checkBalance = async () => {
 			balance: response.UserData.balance,
 		};
 	} catch (error) {
-		console.error('Balance Check Error:', error);
+		logger.error('Balance Check Error:', error);
 
 		return {
 			success: false,
@@ -145,4 +198,5 @@ module.exports = {
 	sendAirtime,
 	checkBalance,
 	formatPhoneNumber,
+	isServiceAvailable,
 };

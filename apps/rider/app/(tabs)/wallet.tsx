@@ -185,7 +185,7 @@ export default function WalletScreen() {
         {todayStats.totalDeliveries > 0 && (
           <View style={styles.progressContainer}>
             <View style={styles.progressHeader}>
-              <Text style={styles.progressLabel}>Completion</Text>
+              <Text style={styles.todayProgressLabel}>Completion</Text>
               <Text style={styles.progressPercentage}>
                 {Math.round(todayStats.progress)}%
               </Text>
@@ -454,7 +454,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 8,
   },
-  progressLabel: {
+  todayProgressLabel: {
     fontSize: 14,
     color: '#666666',
   },

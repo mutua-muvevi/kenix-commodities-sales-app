@@ -235,7 +235,7 @@ export default function DeliveryFlowModal({
               <View style={styles.infoCard}>
                 <Text style={styles.infoLabel}>Shop</Text>
                 <Text style={styles.infoValue}>{delivery.shopId.shopName}</Text>
-                <Text style={styles.infoLabel} style={{ marginTop: 12 }}>
+                <Text style={[styles.infoLabel, { marginTop: 12 }]}>
                   Address
                 </Text>
                 <Text style={styles.infoValue}>{delivery.shopId.address}</Text>
@@ -507,7 +507,7 @@ export default function DeliveryFlowModal({
                 <Text style={styles.successAmount}>
                   {formatCurrency(delivery.totalAmount)}
                 </Text>
-                <Text style={styles.infoLabel} style={{ marginTop: 12 }}>
+                <Text style={[styles.infoLabel, { marginTop: 12 }]}>
                   Payment Method
                 </Text>
                 <Text style={styles.infoValue}>

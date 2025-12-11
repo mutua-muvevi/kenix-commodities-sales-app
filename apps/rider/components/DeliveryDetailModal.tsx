@@ -156,28 +156,28 @@ export default function DeliveryDetailModal({
           </View>
 
           {/* Order Items Section */}
-          {order?.items && order.items.length > 0 && (
+          {delivery.items && delivery.items.length > 0 && (
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Order Items</Text>
               <View style={styles.card}>
-                {order.items.map((item: any, index: number) => (
+                {delivery.items.map((item: any, index: number) => (
                   <View
                     key={index}
-                    style={[styles.itemRow, index < order.items.length - 1 && styles.itemBorder]}
+                    style={[styles.itemRow, index < delivery.items.length - 1 && styles.itemBorder]}
                   >
                     <View style={styles.itemInfo}>
                       <Text style={styles.itemName}>{item.productName || item.name}</Text>
                       <Text style={styles.itemQty}>Qty: {item.quantity}</Text>
                     </View>
                     <Text style={styles.itemPrice}>
-                      {formatCurrency(item.totalPrice || item.price * item.quantity)}
+                      {formatCurrency(item.totalPrice || item.pricePerUnit * item.quantity)}
                     </Text>
                   </View>
                 ))}
                 <View style={styles.totalRow}>
                   <Text style={styles.totalLabel}>Total</Text>
                   <Text style={styles.totalValue}>
-                    {formatCurrency(order.totalPrice || delivery.totalAmount)}
+                    {formatCurrency(delivery.totalAmount)}
                   </Text>
                 </View>
               </View>

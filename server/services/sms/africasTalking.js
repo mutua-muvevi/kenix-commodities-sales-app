@@ -10,22 +10,40 @@
  * - General notifications
  */
 
-const AfricasTalking = require('africastalking');
 const logger = require('../../utils/logger');
 
-// Initialize Africa's Talking
-const credentials = {
-	apiKey: process.env.AFRICASTALKING_API_KEY || '',
-	username: process.env.AFRICASTALKING_USERNAME || 'sandbox',
-};
+// Initialize Africa's Talking with proper error handling
+let sms = null;
+let isConfigured = false;
 
-let sms;
 try {
-	const africastalking = AfricasTalking(credentials);
-	sms = africastalking.SMS;
+	const apiKey = process.env.AFRICASTALKING_API_KEY;
+	const username = process.env.AFRICASTALKING_USERNAME || 'sandbox';
+
+	if (!apiKey) {
+		logger.warn('Africa\'s Talking API key not configured. SMS service will be disabled.');
+	} else {
+		const AfricasTalking = require('africastalking');
+		const africastalking = AfricasTalking({
+			apiKey,
+			username,
+		});
+		sms = africastalking.SMS;
+		isConfigured = true;
+		logger.info('Africa\'s Talking SMS service initialized successfully');
+	}
 } catch (error) {
-	logger.error('Failed to initialize Africa\'s Talking:', error);
+	logger.error('Failed to initialize Africa\'s Talking SMS service:', error.message);
+	logger.warn('SMS service will be disabled. Server will continue to run.');
 }
+
+/**
+ * Check if SMS service is configured
+ * @returns {boolean} Whether the service is available
+ */
+const isServiceAvailable = () => {
+	return isConfigured && sms !== null;
+};
 
 /**
  * Send SMS via Africa's Talking
@@ -325,4 +343,5 @@ module.exports = {
 	sendRiderOrderAssignment,
 	sendLowStockAlert,
 	sendBulkSMS,
+	isServiceAvailable,
 };

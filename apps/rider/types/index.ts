@@ -35,10 +35,38 @@ export interface OrderItem {
   totalPrice: number;
 }
 
+export interface PaymentInfo {
+  method?: 'mpesa' | 'cash' | 'airtel' | 'not_required';
+  amountToCollect: number;
+  amountCollected: number;
+  status: 'pending' | 'collected' | 'failed' | 'not_required';
+  mpesaTransaction?: string;
+  collectedAt?: Date;
+  receiptNumber?: string;
+}
+
+export interface DeliveryConfirmation {
+  recipientName?: string;
+  recipientPhone?: string;
+  signature?: string;
+  photo?: string;
+  notes?: string;
+  confirmedAt?: Date;
+}
+
+export interface Order {
+  _id: string;
+  orderId: string;
+  items: OrderItem[];
+  totalPrice: number;
+  paymentMethod?: 'mpesa' | 'cash' | 'credit';
+  paymentStatus?: 'pending' | 'confirmed' | 'failed';
+}
+
 export interface Delivery {
   _id: string;
   shopId: Shop;
-  orderId: string;
+  orderId: string | Order;
   items: OrderItem[];
   totalAmount: number;
   deliverySequence: number;
@@ -46,11 +74,15 @@ export interface Delivery {
   assignedRiderId?: string;
   arrivalTime?: Date;
   completionTime?: Date;
+  arrivedAt?: Date;
+  completedAt?: Date;
   paymentMethod?: 'mpesa' | 'cash' | 'airtel';
   paymentStatus?: 'pending' | 'completed' | 'failed';
+  paymentInfo?: PaymentInfo;
   signature?: string;
   photo?: string;
   notes?: string;
+  confirmation?: DeliveryConfirmation;
   location?: {
     lat: number;
     lng: number;
@@ -63,6 +95,15 @@ export interface Delivery {
     reason?: string;
     overriddenBy?: string;
     overriddenAt?: Date;
+  };
+  // Skip request fields
+  skipRequest?: {
+    requested: boolean;
+    requestedAt?: Date;
+    reason?: string;
+    notes?: string;
+    photo?: string;
+    status?: 'pending' | 'approved' | 'rejected';
   };
 }
 

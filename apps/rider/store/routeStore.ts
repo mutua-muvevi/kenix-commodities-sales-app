@@ -84,7 +84,7 @@ export const useRouteStore = create<RouteState>((set, get) => ({
 
         // Cache the route for offline use
         if (route) {
-          cacheActiveRoute(route);
+          await cacheActiveRoute(route);
           const currentDelivery = await routeService.getCurrentDelivery(route._id);
           set({ currentDelivery });
 
@@ -114,12 +114,12 @@ export const useRouteStore = create<RouteState>((set, get) => ({
             }
           }
         } else {
-          clearCachedRoute();
+          await clearCachedRoute();
           get().stopDeviationMonitoring();
         }
       } else {
         // Offline: load from cache
-        const cachedRoute = getCachedRoute();
+        const cachedRoute = await getCachedRoute();
         if (cachedRoute) {
           set({ activeRoute: cachedRoute, isLoading: false });
           // Find current delivery from cached route
@@ -144,7 +144,7 @@ export const useRouteStore = create<RouteState>((set, get) => ({
       console.error('Load active route error:', error);
 
       // Try to load from cache on network error
-      const cachedRoute = getCachedRoute();
+      const cachedRoute = await getCachedRoute();
       if (cachedRoute) {
         set({ activeRoute: cachedRoute, isLoading: false });
         const currentDelivery = cachedRoute.deliveries.find(
@@ -215,7 +215,7 @@ export const useRouteStore = create<RouteState>((set, get) => ({
         });
       } else {
         // Queue for later when offline
-        queueOfflineAction('mark_arrival', { deliveryId, location });
+        await queueOfflineAction({ type: 'mark_arrival', payload: { deliveryId, location } });
 
         // Optimistically update local state
         const { currentDelivery } = get();
@@ -236,7 +236,7 @@ export const useRouteStore = create<RouteState>((set, get) => ({
       console.error('Mark arrival error:', error);
 
       // Queue on network error
-      queueOfflineAction('mark_arrival', { deliveryId, location });
+      await queueOfflineAction({ type: 'mark_arrival', payload: { deliveryId, location } });
 
       Toast.show({
         type: 'warning',
@@ -291,7 +291,7 @@ export const useRouteStore = create<RouteState>((set, get) => ({
         }
       } else {
         // Queue for later when offline
-        queueOfflineAction('complete_delivery', { deliveryId, ...data });
+        await queueOfflineAction({ type: 'complete_delivery', payload: { deliveryId, data } });
 
         // Optimistically update local state
         const { currentDelivery, activeRoute } = get();
@@ -312,7 +312,7 @@ export const useRouteStore = create<RouteState>((set, get) => ({
       console.error('Complete delivery error:', error);
 
       // Queue on network error
-      queueOfflineAction('complete_delivery', { deliveryId, ...data });
+      await queueOfflineAction({ type: 'complete_delivery', payload: { deliveryId, data } });
 
       Toast.show({
         type: 'warning',

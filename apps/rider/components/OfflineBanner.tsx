@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNetworkStore } from '../store/networkStore';
@@ -7,7 +7,20 @@ import { getPendingActionsCount } from '../services/offline';
 export default function OfflineBanner() {
   const { isOnline } = useNetworkStore();
   const slideAnim = useRef(new Animated.Value(-60)).current;
-  const pendingCount = getPendingActionsCount();
+  const [pendingCount, setPendingCount] = useState(0);
+
+  // Fetch pending actions count
+  useEffect(() => {
+    const fetchPendingCount = async () => {
+      const count = await getPendingActionsCount();
+      setPendingCount(count);
+    };
+    fetchPendingCount();
+
+    // Refresh count periodically when offline
+    const interval = setInterval(fetchPendingCount, 5000);
+    return () => clearInterval(interval);
+  }, [isOnline]);
 
   useEffect(() => {
     Animated.timing(slideAnim, {

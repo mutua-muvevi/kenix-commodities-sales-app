@@ -359,7 +359,7 @@ export const startBackgroundTracking = async (): Promise<boolean> => {
       return false;
     }
 
-    const isTaskDefined = await TaskManager.isTaskDefinedAsync(
+    const isTaskDefined = TaskManager.isTaskDefined(
       LOCATION_TASK_NAME
     );
 

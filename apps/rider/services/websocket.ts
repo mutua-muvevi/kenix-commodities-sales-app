@@ -203,6 +203,27 @@ class WebSocketService {
     }
   }
 
+  // Emit generic event
+  emit(event: string, data: any): void {
+    if (this.socket?.connected) {
+      this.socket.emit(event, data);
+    }
+  }
+
+  // Emit route deviation alert
+  emitRouteDeviation(deviationData: {
+    routeId: string;
+    currentLocation: { lat: number; lng: number };
+    expectedRoute: Array<{ lat: number; lng: number }>;
+    deviationDistance: number;
+    severity: string;
+    currentDeliveryId?: string;
+  }): void {
+    if (this.socket?.connected) {
+      this.socket.emit('rider:route-deviation', deviationData);
+      console.log('Route deviation reported:', deviationData);
+    }
+  }
   isConnected(): boolean {
     return this.socket?.connected || false;
   }
@@ -219,7 +240,7 @@ export const websocketService = new WebSocketService();
 export const useWebSocketEvent = (
   event: string,
   callback: Function
-): void => {
+): (() => void) => {
   websocketService.on(event, callback);
 
   // Cleanup on unmount

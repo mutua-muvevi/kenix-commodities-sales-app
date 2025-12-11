@@ -29,6 +29,7 @@ app.use(expressSanitizer);
 app.use(databaseSanitizer);
 
 //routes
+app.use("/api/health", require("./routes/health"));
 app.use("/api/user", require("./routes/user"));
 app.use("/api/products", require("./routes/products"));
 app.use("/api/categories", require("./routes/categories"));
@@ -44,6 +45,7 @@ app.use("/api/loans", require("./routes/loans"));
 app.use("/api/airtime", require("./routes/airtime"));
 app.use("/api/shop-wallet", require("./routes/shopWallet"));
 app.use("/api/offers", require("./routes/offers"));
+app.use("/api/rider", require("./routes/rider"));
 
 //error middleware
 app.use(errorHandler)
