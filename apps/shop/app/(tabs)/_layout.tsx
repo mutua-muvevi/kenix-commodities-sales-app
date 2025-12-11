@@ -1,30 +1,25 @@
-// app/(tabs)/_layout.tsx - Updated with Offers instead of Search
+// app/(tabs)/_layout.tsx - Clean 4-tab layout (Home, Categories, Offers, More)
 import React from "react";
 import { Tabs } from "expo-router";
-import { MaterialIcons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { MaterialIcons } from "@expo/vector-icons";
 import { Platform } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "../../hooks/useTheme";
-import { useCart } from "../../store";
 
 const TabsLayout = () => {
 	const { theme } = useTheme();
-	const { totalItems } = useCart();
 	const insets = useSafeAreaInsets();
 
-	// Calculate proper heights for different devices
+	// Compact tab bar height - Wasoko style
 	const getTabBarHeight = () => {
 		if (Platform.OS === "ios") {
-			return 49 + insets.bottom;
+			return 50 + insets.bottom;
 		}
-
-		const baseHeight = 60;
-		const additionalPadding = Math.max(insets.bottom, 16);
-		return baseHeight + additionalPadding;
+		return 56 + Math.max(insets.bottom, 8);
 	};
 
 	const tabBarHeight = getTabBarHeight();
-	const ICON_SIZE = 24;
+	const ICON_SIZE = 22; // Smaller, more compact icons
 
 	return (
 		<Tabs
@@ -37,15 +32,15 @@ const TabsLayout = () => {
 					borderTopColor: theme.palette.divider,
 					borderTopWidth: 0.5,
 					height: tabBarHeight,
-					paddingBottom: Platform.OS === "ios" ? insets.bottom : Math.max(insets.bottom, 8),
-					paddingTop: 8,
-					paddingHorizontal: 4,
+					paddingBottom: Platform.OS === "ios" ? insets.bottom : Math.max(insets.bottom, 4),
+					paddingTop: 4, // Reduced from 8 to 4
+					paddingHorizontal: 2, // Reduced from 4 to 2
 					...(Platform.OS === "android" && {
-						elevation: 12,
+						elevation: 8,
 						shadowColor: theme.palette.common.black,
-						shadowOffset: { width: 0, height: -3 },
-						shadowOpacity: 0.15,
-						shadowRadius: 6,
+						shadowOffset: { width: 0, height: -2 },
+						shadowOpacity: 0.1,
+						shadowRadius: 4,
 						position: "absolute" as const,
 						bottom: 0,
 						left: 0,
@@ -55,25 +50,25 @@ const TabsLayout = () => {
 					...(Platform.OS === "ios" && {
 						shadowColor: theme.palette.common.black,
 						shadowOffset: { width: 0, height: -1 },
-						shadowOpacity: 0.1,
-						shadowRadius: 3,
+						shadowOpacity: 0.08,
+						shadowRadius: 2,
 					}),
 				},
 				tabBarLabelStyle: {
-					fontSize: Platform.OS === "ios" ? 10 : 11,
+					fontSize: 10, // Consistent 10px
 					fontWeight: "600",
-					marginTop: 2,
-					marginBottom: 2,
+					marginTop: 0, // Remove top margin
+					marginBottom: 1,
 					includeFontPadding: false,
 				},
 				tabBarIconStyle: {
-					marginTop: Platform.OS === "ios" ? 2 : 4,
+					marginTop: 0, // Remove top margin
 					marginBottom: 0,
 				},
 				tabBarItemStyle: {
-					paddingVertical: Platform.OS === "ios" ? 4 : 6,
-					paddingHorizontal: 2,
-					minHeight: 48,
+					paddingVertical: 4, // Reduced padding
+					paddingHorizontal: 0,
+					minHeight: 44, // Reduced from 48 to 44
 					justifyContent: "center",
 				},
 				tabBarPressColor: Platform.OS === "android" ? theme.palette.primary.main + "20" : undefined,
@@ -86,15 +81,7 @@ const TabsLayout = () => {
 					title: "Home",
 					tabBarAccessibilityLabel: "Home Tab",
 					tabBarIcon: ({ color, focused }) => (
-						<MaterialIcons
-							name={focused ? "home" : "home"}
-							size={ICON_SIZE}
-							color={color}
-							style={{
-								marginBottom: Platform.OS === "android" ? 2 : 0,
-								opacity: focused ? 1 : 0.6,
-							}}
-						/>
+						<MaterialIcons name="home" size={ICON_SIZE} color={color} />
 					),
 				}}
 			/>
@@ -104,15 +91,7 @@ const TabsLayout = () => {
 					title: "Categories",
 					tabBarAccessibilityLabel: "Categories Tab",
 					tabBarIcon: ({ color, focused }) => (
-						<MaterialIcons
-							name="category"
-							size={ICON_SIZE}
-							color={color}
-							style={{
-								marginBottom: Platform.OS === "android" ? 2 : 0,
-								opacity: focused ? 1 : 0.6,
-							}}
-						/>
+						<MaterialIcons name="category" size={ICON_SIZE} color={color} />
 					),
 				}}
 			/>
@@ -122,65 +101,29 @@ const TabsLayout = () => {
 					title: "Offers",
 					tabBarAccessibilityLabel: "Offers Tab",
 					tabBarIcon: ({ color, focused }) => (
-						<MaterialIcons
-							name={focused ? "local-offer" : "local-offer"}
-							size={ICON_SIZE}
-							color={color}
-							style={{
-								marginBottom: Platform.OS === "android" ? 2 : 0,
-								opacity: focused ? 1 : 0.6,
-							}}
-						/>
-					),
-				}}
-			/>
-			<Tabs.Screen
-				name="cart"
-				options={{
-					title: "Cart",
-					tabBarAccessibilityLabel: `Cart Tab${totalItems > 0 ? `, ${totalItems} items` : ""}`,
-					tabBarBadge: totalItems > 0 ? (totalItems > 99 ? "99+" : totalItems) : undefined,
-					tabBarBadgeStyle: {
-						backgroundColor: theme.palette.error.main,
-						color: theme.palette.error.contrastText,
-						fontSize: 9,
-						fontWeight: "700",
-						minWidth: 18,
-						height: 18,
-						borderRadius: 9,
-						borderWidth: Platform.OS === "ios" ? 0 : 1,
-						borderColor: theme.palette.background.paper,
-						top: Platform.OS === "android" ? 2 : 0,
-					},
-					tabBarIcon: ({ color, focused }) => (
-						<MaterialCommunityIcons
-							name={focused ? "shopping" : "shopping-outline"}
-							size={ICON_SIZE}
-							color={color}
-							style={{
-								marginBottom: Platform.OS === "android" ? 2 : 0,
-								opacity: focused ? 1 : 0.6,
-							}}
-						/>
+						<MaterialIcons name="local-offer" size={ICON_SIZE} color={color} />
 					),
 				}}
 			/>
 			<Tabs.Screen
 				name="profile"
 				options={{
-					title: "Profile",
-					tabBarAccessibilityLabel: "Profile Tab",
+					title: "More",
+					tabBarAccessibilityLabel: "More Tab - Profile and Settings",
 					tabBarIcon: ({ color, focused }) => (
 						<MaterialIcons
 							name={focused ? "person" : "person-outline"}
 							size={ICON_SIZE}
 							color={color}
-							style={{
-								marginBottom: Platform.OS === "android" ? 2 : 0,
-								opacity: focused ? 1 : 0.6,
-							}}
 						/>
 					),
+				}}
+			/>
+			{/* Cart tab hidden - using FAB instead */}
+			<Tabs.Screen
+				name="cart"
+				options={{
+					href: null, // Hide from tab bar
 				}}
 			/>
 		</Tabs>

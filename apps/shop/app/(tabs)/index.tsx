@@ -1,35 +1,39 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, ScrollView, StyleSheet, FlatList, RefreshControl, TouchableOpacity } from "react-native";
-import Animated, {
-	FadeInDown,
-	FadeInUp,
-	FadeIn,
-	withSpring,
-	useAnimatedStyle,
-	useSharedValue,
-	withTiming,
-	Easing
-} from "react-native-reanimated";
+import {
+	View,
+	Text,
+	ScrollView,
+	StyleSheet,
+	RefreshControl,
+	TouchableOpacity,
+	useWindowDimensions,
+	Pressable,
+} from "react-native";
+import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
+import { Image } from "expo-image";
 import * as Haptics from "expo-haptics";
+import { useRouter } from "expo-router";
 import { SafeArea, Container } from "../../components/layout";
 import { SearchBar } from "../../components/ui";
 import { ProductCard } from "../../components/product/ProductCard";
-import { CategorySlider } from "../../components/category/CategorySlider";
 import { useTheme } from "../../hooks";
-import { useProducts, useCategories, useAuth, useCart } from "../../store";
+import { useProducts, useCategories, useCart } from "../../store";
 import { Category } from "../../store/types/product";
 
 const HomeScreen = () => {
 	const { theme } = useTheme();
-	const user = null;
-	const totalItems = 0;
-	const totalPrice = 0;
+	const router = useRouter();
+	const { width } = useWindowDimensions();
 	const { categories, fetchCategories } = useCategories();
 	const { allProducts, fetchAllProducts } = useProducts();
+	const { totalItems, totalPrice } = useCart();
 
 	const [refreshing, setRefreshing] = useState(false);
+
+	// Calculate compact category card size - 3 columns with minimal margins
+	const categoryCardWidth = (width - 32) / 3 - 4; // 16px horizontal padding + 4px gaps
 
 	useEffect(() => {
 		loadInitialData();
@@ -37,8 +41,7 @@ const HomeScreen = () => {
 
 	const loadInitialData = async () => {
 		try {
-			await Promise.all([fetchCategories(), fetchAllProducts({ limit: 16 })]);
-			console.log("Loading initial data...");
+			await Promise.all([fetchCategories(), fetchAllProducts({ limit: 12 })]);
 		} catch (error) {
 			console.error("Error loading data:", error);
 		}
@@ -55,126 +58,200 @@ const HomeScreen = () => {
 		Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 		console.log("Category pressed:", category.name);
 		// Navigate to category products
+		router.push(`/category/${category._id}`);
 	};
+
+	const handleQuickAction = (action: string) => {
+		Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+		console.log("Quick action:", action);
+	};
+
+	// Recommended quick actions - Wasoko style
+	const quickActions = [
+		{ id: "1", icon: "flash", label: "Deals", color: theme.palette.warning.main },
+		{ id: "2", icon: "heart", label: "Favorites", color: theme.palette.error.main },
+		{ id: "3", icon: "time", label: "Recent", color: theme.palette.info.main },
+		{ id: "4", icon: "trophy", label: "Popular", color: theme.palette.success.main },
+	];
 
 	const styles = StyleSheet.create({
 		container: {
 			flex: 1,
+			backgroundColor: theme.palette.background.default,
 		},
-		header: {
-			paddingTop: theme.spacing.lg,
-			paddingBottom: theme.spacing.sm,
+		// Clean search bar at top
+		searchContainer: {
+			paddingHorizontal: 12,
+			paddingTop: 8,
+			paddingBottom: 8,
+			backgroundColor: theme.palette.background.default,
 		},
-		welcomeCard: {
-			marginHorizontal: theme.spacing.lg,
-			marginBottom: theme.spacing.xl,
+		// Promotional banner - Wasoko style
+		promoBanner: {
+			marginHorizontal: 12,
+			marginBottom: 12,
+			borderRadius: 8,
 			overflow: "hidden",
-			borderRadius: theme.borderRadius.xl,
-			...theme.shadows.z8,
+			height: 120,
 		},
-		gradientHeader: {
-			padding: theme.spacing.xl,
-			paddingVertical: theme.spacing.xxl,
-		},
-		welcomeTextRow: {
-			flexDirection: "row",
-			alignItems: "center",
-			marginBottom: theme.spacing.xs,
-		},
-		welcomeIcon: {
-			marginRight: theme.spacing.sm,
-		},
-		welcomeText: {
-			...theme.typography.h3,
-			color: theme.palette.common.white,
-			fontWeight: "700",
-			fontSize: 28,
-			letterSpacing: -0.5,
-		},
-		subtitle: {
-			...theme.typography.body1,
-			color: "rgba(255,255,255,0.95)",
-			marginBottom: theme.spacing.lg,
-			fontSize: 15,
-			lineHeight: 22,
-		},
-		statsContainer: {
-			flexDirection: "row",
-			justifyContent: "space-between",
-			marginTop: theme.spacing.md,
-			gap: theme.spacing.sm,
-		},
-		statItem: {
-			backgroundColor: "rgba(255,255,255,0.25)",
-			borderRadius: theme.borderRadius.lg,
-			padding: theme.spacing.md,
-			paddingVertical: theme.spacing.lg,
+		promoGradient: {
 			flex: 1,
-			alignItems: "center",
-			borderWidth: 1,
-			borderColor: "rgba(255,255,255,0.15)",
+			padding: 16,
+			justifyContent: "center",
 		},
-		statValue: {
+		promoTitle: {
 			...theme.typography.h5,
 			color: theme.palette.common.white,
 			fontWeight: "800",
-			fontSize: 20,
-			marginBottom: theme.spacing.xs / 2,
+			fontSize: 22,
+			marginBottom: 4,
+			letterSpacing: -0.5,
 		},
-		statLabel: {
-			...theme.typography.caption,
-			color: "rgba(255,255,255,0.85)",
-			fontSize: 11,
+		promoSubtitle: {
+			...theme.typography.body2,
+			color: "rgba(255,255,255,0.95)",
+			fontSize: 14,
 			fontWeight: "600",
-			textTransform: "uppercase",
-			letterSpacing: 0.5,
 		},
+		promoStats: {
+			flexDirection: "row",
+			alignItems: "center",
+			marginTop: 8,
+			gap: 12,
+		},
+		promoStat: {
+			flexDirection: "row",
+			alignItems: "center",
+			gap: 4,
+		},
+		promoStatText: {
+			...theme.typography.caption,
+			color: "rgba(255,255,255,0.9)",
+			fontSize: 12,
+			fontWeight: "600",
+		},
+		// Section headers - minimal style
 		sectionHeader: {
 			flexDirection: "row",
 			justifyContent: "space-between",
 			alignItems: "center",
-			marginTop: theme.spacing.xl,
-			marginBottom: theme.spacing.md,
-			marginHorizontal: theme.spacing.lg,
+			paddingHorizontal: 12,
+			marginTop: 8,
+			marginBottom: 8,
 		},
 		sectionTitle: {
-			...theme.typography.h5,
+			...theme.typography.h6,
 			color: theme.palette.text.primary,
 			fontWeight: "700",
-			fontSize: 20,
-			letterSpacing: -0.3,
+			fontSize: 16,
+			letterSpacing: -0.2,
 		},
 		viewAllButton: {
 			flexDirection: "row",
 			alignItems: "center",
-			paddingVertical: theme.spacing.xs,
-			paddingHorizontal: theme.spacing.sm,
+			paddingVertical: 4,
+			paddingHorizontal: 8,
 		},
 		viewAllText: {
 			...theme.typography.body2,
 			color: theme.palette.primary.main,
 			fontWeight: "600",
-			marginRight: theme.spacing.xs / 2,
+			fontSize: 13,
+			marginRight: 2,
 		},
-		searchContainer: {
-			paddingHorizontal: theme.spacing.lg,
-			marginBottom: theme.spacing.md,
+		// Compact 3-column category grid
+		categoriesGrid: {
+			paddingHorizontal: 12,
+			flexDirection: "row",
+			flexWrap: "wrap",
+			gap: 6,
+			marginBottom: 12,
+		},
+		categoryCard: {
+			width: categoryCardWidth,
+			alignItems: "center",
+			backgroundColor: theme.palette.background.paper,
+			borderRadius: 8,
+			padding: 8,
+			borderWidth: 1,
+			borderColor:
+				theme.palette.mode === "light"
+					? theme.palette.grey[200]
+					: "rgba(255,255,255,0.08)",
+		},
+		categoryCardPressed: {
+			opacity: 0.7,
+			transform: [{ scale: 0.97 }],
+		},
+		categoryImage: {
+			width: categoryCardWidth - 16,
+			height: categoryCardWidth - 16,
+			borderRadius: 6,
+			marginBottom: 6,
+			backgroundColor: theme.palette.grey[100],
+		},
+		categoryName: {
+			...theme.typography.caption,
+			color: theme.palette.text.primary,
+			fontWeight: "600",
+			fontSize: 11,
+			textAlign: "center",
+			lineHeight: 14,
+		},
+		// Quick actions section
+		quickActionsContainer: {
+			paddingHorizontal: 12,
+			marginBottom: 12,
+		},
+		quickActionsRow: {
+			flexDirection: "row",
+			gap: 8,
+		},
+		quickActionButton: {
+			flex: 1,
+			flexDirection: "row",
+			alignItems: "center",
+			justifyContent: "center",
+			backgroundColor: theme.palette.background.paper,
+			borderRadius: 8,
+			padding: 12,
+			gap: 6,
+			borderWidth: 1,
+			borderColor:
+				theme.palette.mode === "light"
+					? theme.palette.grey[200]
+					: "rgba(255,255,255,0.08)",
+		},
+		quickActionLabel: {
+			...theme.typography.caption,
+			color: theme.palette.text.primary,
+			fontWeight: "600",
+			fontSize: 12,
+		},
+		// Product grid
+		productsContainer: {
+			paddingHorizontal: 12,
+			paddingBottom: 24,
 		},
 		productsGrid: {
-			paddingHorizontal: theme.spacing.lg,
-			paddingBottom: theme.spacing.xxl,
+			gap: 8,
 		},
+		productRow: {
+			justifyContent: "space-between",
+			gap: 8,
+		},
+		// Empty state
 		emptyState: {
 			alignItems: "center",
 			justifyContent: "center",
-			paddingVertical: theme.spacing.xxl * 2,
+			paddingVertical: 40,
 		},
 		emptyIcon: {
-			marginBottom: theme.spacing.lg,
+			marginBottom: 12,
 			opacity: 0.3,
 		},
 		emptyText: {
-			...theme.typography.body1,
+			...theme.typography.body2,
 			color: theme.palette.text.secondary,
 			textAlign: "center",
 		},
@@ -182,7 +259,7 @@ const HomeScreen = () => {
 
 	return (
 		<SafeArea>
-			<Container padding="compact">
+			<Container padding="none">
 				<ScrollView
 					style={styles.container}
 					showsVerticalScrollIndicator={false}
@@ -197,146 +274,209 @@ const HomeScreen = () => {
 					}
 					bounces={true}
 				>
-					{/* Premium Welcome Card */}
-					<View style={styles.header}>
-						<Animated.View
-							entering={FadeInDown.duration(400).springify().damping(15)}
-							style={styles.welcomeCard}
-						>
-							<LinearGradient
-								colors={[
-									theme.palette.primary.main,
-									theme.palette.primary.dark,
-									theme.palette.primary.darker
-								]}
-								start={{ x: 0, y: 0 }}
-								end={{ x: 1, y: 1 }}
-								style={styles.gradientHeader}
-							>
-								{/* Welcome Text with Icon */}
-								<Animated.View
-									entering={FadeIn.delay(200).duration(300)}
-									style={styles.welcomeTextRow}
-								>
-									<Ionicons
-										name="sparkles"
-										size={24}
-										color="rgba(255,255,255,0.9)"
-										style={styles.welcomeIcon}
-									/>
-									<Text style={styles.welcomeText}>
-										Welcome{user ? `, ${user.name}` : ""}!
-									</Text>
-								</Animated.View>
-
-								{/* Subtitle */}
-								<Animated.Text
-									entering={FadeIn.delay(300).duration(300)}
-									style={styles.subtitle}
-								>
-									Find quality products at wholesale prices
-								</Animated.Text>
-
-								{/* Stats Cards */}
-								<Animated.View
-									entering={FadeInUp.delay(400).duration(300).springify()}
-									style={styles.statsContainer}
-								>
-									<View style={styles.statItem}>
-										<Text style={styles.statValue}>{totalItems}</Text>
-										<Text style={styles.statLabel}>Cart Items</Text>
-									</View>
-									<View style={styles.statItem}>
-										<Text style={styles.statValue}>
-											{totalPrice > 0 ? `${totalPrice.toLocaleString()}` : "0"}
-										</Text>
-										<Text style={styles.statLabel}>KES Total</Text>
-									</View>
-									<View style={styles.statItem}>
-										<Text style={styles.statValue}>{categories.length}</Text>
-										<Text style={styles.statLabel}>Categories</Text>
-									</View>
-								</Animated.View>
-							</LinearGradient>
-						</Animated.View>
-					</View>
-
-					{/* Search Bar */}
+					{/* Clean Search Bar */}
 					<Animated.View
-						entering={FadeInDown.delay(200).duration(300)}
+						entering={FadeInDown.duration(300)}
 						style={styles.searchContainer}
 					>
 						<SearchBar placeholder="Search products, brands..." />
 					</Animated.View>
 
+					{/* Promotional Banner - Wasoko Style */}
+					<Animated.View entering={FadeInDown.delay(100).duration(300)}>
+						<View style={styles.promoBanner}>
+							<LinearGradient
+								colors={[
+									theme.palette.secondary.main,
+									theme.palette.secondary.dark,
+									theme.palette.secondary.darker,
+								]}
+								start={{ x: 0, y: 0 }}
+								end={{ x: 1, y: 1 }}
+								style={styles.promoGradient}
+							>
+								<Text style={styles.promoTitle}>PATA MORE FOR LESS</Text>
+								<Text style={styles.promoSubtitle}>
+									Wholesale prices, retail convenience
+								</Text>
+								<View style={styles.promoStats}>
+									<View style={styles.promoStat}>
+										<Ionicons
+											name="cart"
+											size={14}
+											color="rgba(255,255,255,0.9)"
+										/>
+										<Text style={styles.promoStatText}>
+											{totalItems} {totalItems === 1 ? "item" : "items"}
+										</Text>
+									</View>
+									<View style={styles.promoStat}>
+										<Ionicons
+											name="cash"
+											size={14}
+											color="rgba(255,255,255,0.9)"
+										/>
+										<Text style={styles.promoStatText}>
+											KES {totalPrice.toLocaleString()}
+										</Text>
+									</View>
+								</View>
+							</LinearGradient>
+						</View>
+					</Animated.View>
+
 					{/* Categories Section */}
 					{categories.length > 0 && (
-						<Animated.View entering={FadeInUp.delay(300).duration(300)}>
+						<Animated.View entering={FadeInUp.delay(150).duration(300)}>
 							<View style={styles.sectionHeader}>
-								<Text style={styles.sectionTitle}>Shop by Category</Text>
+								<Text style={styles.sectionTitle}>Categories</Text>
 								<TouchableOpacity
 									style={styles.viewAllButton}
-									onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
+									onPress={() =>
+										Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
+									}
 									activeOpacity={0.7}
 								>
 									<Text style={styles.viewAllText}>View All</Text>
 									<Ionicons
 										name="chevron-forward"
-										size={16}
+										size={14}
 										color={theme.palette.primary.main}
 									/>
 								</TouchableOpacity>
 							</View>
-							<CategorySlider categories={categories} onCategoryPress={handleCategoryPress} />
+
+							{/* Compact 3-Column Grid */}
+							<View style={styles.categoriesGrid}>
+								{categories.slice(0, 9).map((category, index) => (
+									<Pressable
+										key={category._id}
+										style={({ pressed }) => [
+											styles.categoryCard,
+											pressed && styles.categoryCardPressed,
+										]}
+										onPress={() => handleCategoryPress(category)}
+										accessibilityRole="button"
+										accessibilityLabel={`Browse ${category.name} category`}
+										accessibilityHint="Tap to view products in this category"
+									>
+										<Image
+											source={{ uri: category.image }}
+											style={styles.categoryImage}
+											contentFit="cover"
+											transition={200}
+											cachePolicy="memory-disk"
+										/>
+										<Text
+											style={styles.categoryName}
+											numberOfLines={2}
+											ellipsizeMode="tail"
+										>
+											{category.name}
+										</Text>
+									</Pressable>
+								))}
+							</View>
 						</Animated.View>
 					)}
 
-					{/* Featured Products Section */}
-					<Animated.View entering={FadeInUp.delay(400).duration(300)}>
+					{/* Recommended Buttons Section */}
+					<Animated.View entering={FadeInUp.delay(200).duration(300)}>
 						<View style={styles.sectionHeader}>
-							<Text style={styles.sectionTitle}>Featured Products</Text>
+							<Text style={styles.sectionTitle}>Recommended Actions</Text>
+						</View>
+
+						<View style={styles.quickActionsContainer}>
+							<View style={styles.quickActionsRow}>
+								{quickActions.map((action) => (
+									<TouchableOpacity
+										key={action.id}
+										style={styles.quickActionButton}
+										onPress={() => handleQuickAction(action.label)}
+										activeOpacity={0.7}
+										accessibilityRole="button"
+										accessibilityLabel={action.label}
+									>
+										<Ionicons
+											name={action.icon as any}
+											size={16}
+											color={action.color}
+										/>
+										<Text style={styles.quickActionLabel}>{action.label}</Text>
+									</TouchableOpacity>
+								))}
+							</View>
+						</View>
+					</Animated.View>
+
+					{/* Recommended SKUs Section */}
+					<Animated.View entering={FadeInUp.delay(250).duration(300)}>
+						<View style={styles.sectionHeader}>
+							<Text style={styles.sectionTitle}>Recommended SKUs</Text>
 							<TouchableOpacity
 								style={styles.viewAllButton}
-								onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
+								onPress={() =>
+									Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
+								}
 								activeOpacity={0.7}
 							>
 								<Text style={styles.viewAllText}>View All</Text>
 								<Ionicons
 									name="chevron-forward"
-									size={16}
+									size={14}
 									color={theme.palette.primary.main}
 								/>
 							</TouchableOpacity>
 						</View>
 
-						{allProducts.products.length > 0 ? (
-							<FlatList
-								data={allProducts.products}
-								renderItem={({ item, index }) => (
-									<ProductCard product={item} index={index} />
-								)}
-								keyExtractor={(item) => item._id}
-								numColumns={2}
-								scrollEnabled={false}
-								contentContainerStyle={styles.productsGrid}
-								columnWrapperStyle={{
-									justifyContent: "space-between",
-									gap: theme.spacing.md,
-								}}
-							/>
-						) : (
-							<View style={styles.emptyState}>
-								<Ionicons
-									name="cube-outline"
-									size={64}
-									color={theme.palette.text.secondary}
-									style={styles.emptyIcon}
-								/>
-								<Text style={styles.emptyText}>
-									No products available at the moment
-								</Text>
-							</View>
-						)}
+						<View style={styles.productsContainer}>
+							{allProducts.products.length > 0 ? (
+								<View style={styles.productsGrid}>
+									{/* Render products in rows of 2 */}
+									{Array.from({
+										length: Math.ceil(allProducts.products.length / 2),
+									}).map((_, rowIndex) => {
+										const startIndex = rowIndex * 2;
+										const rowProducts = allProducts.products.slice(
+											startIndex,
+											startIndex + 2
+										);
+
+										return (
+											<View key={rowIndex} style={styles.productRow}>
+												{rowProducts.map((product, index) => (
+													<View
+														key={product._id}
+														style={{ flex: 1, maxWidth: "48.5%" }}
+													>
+														<ProductCard
+															product={product}
+															index={startIndex + index}
+														/>
+													</View>
+												))}
+												{/* Add spacer if odd number of products in last row */}
+												{rowProducts.length === 1 && (
+													<View style={{ flex: 1, maxWidth: "48.5%" }} />
+												)}
+											</View>
+										);
+									})}
+								</View>
+							) : (
+								<View style={styles.emptyState}>
+									<Ionicons
+										name="cube-outline"
+										size={48}
+										color={theme.palette.text.secondary}
+										style={styles.emptyIcon}
+									/>
+									<Text style={styles.emptyText}>
+										No products available at the moment
+									</Text>
+								</View>
+							)}
+						</View>
 					</Animated.View>
 				</ScrollView>
 			</Container>

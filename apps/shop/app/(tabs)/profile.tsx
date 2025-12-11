@@ -304,44 +304,156 @@ const ProfileScreen = () => {
 			fontWeight: "700",
 			marginLeft: theme.spacing.sm,
 		},
-		guestState: {
+		guestContainer: {
 			alignItems: "center",
+			paddingHorizontal: theme.spacing.lg,
 			paddingVertical: theme.spacing.xxl,
 		},
-		guestIcon: {
-			fontSize: 64,
-			marginBottom: theme.spacing.lg,
+		guestIconContainer: {
+			marginBottom: theme.spacing.xl,
 		},
-		guestTitle: {
-			...theme.typography.h5,
+		guestIconGradient: {
+			width: 140,
+			height: 140,
+			borderRadius: 70,
+			alignItems: "center",
+			justifyContent: "center",
+			shadowColor: theme.palette.primary.main,
+			shadowOffset: { width: 0, height: 8 },
+			shadowOpacity: 0.3,
+			shadowRadius: 16,
+			elevation: 8,
+		},
+		welcomeTitle: {
+			...theme.typography.h3,
 			color: theme.palette.text.primary,
+			fontWeight: "700",
 			marginBottom: theme.spacing.sm,
+			textAlign: "center",
 		},
-		guestDescription: {
-			...theme.typography.body2,
+		welcomeSubtitle: {
+			...theme.typography.body1,
 			color: theme.palette.text.secondary,
 			textAlign: "center",
-			paddingHorizontal: theme.spacing.lg,
-			marginBottom: theme.spacing.xl,
+			marginBottom: theme.spacing.xxl,
+			paddingHorizontal: theme.spacing.md,
+			lineHeight: 24,
+		},
+		authButtonContainer: {
+			width: "100%",
+			marginBottom: theme.spacing.md,
+		},
+		guestFeaturesContainer: {
+			width: "100%",
+			marginTop: theme.spacing.xl,
+			paddingTop: theme.spacing.xl,
+			borderTopWidth: 1,
+			borderTopColor: theme.palette.divider,
+		},
+		guestFeaturesTitle: {
+			...theme.typography.subtitle1,
+			color: theme.palette.text.primary,
+			fontWeight: "600",
+			marginBottom: theme.spacing.lg,
+			textAlign: "center",
+		},
+		guestFeatureItem: {
+			flexDirection: "row",
+			alignItems: "center",
+			marginBottom: theme.spacing.md,
+			paddingHorizontal: theme.spacing.md,
+		},
+		guestFeatureIcon: {
+			width: 40,
+			height: 40,
+			borderRadius: 20,
+			alignItems: "center",
+			justifyContent: "center",
+			marginRight: theme.spacing.md,
+		},
+		guestFeatureText: {
+			...theme.typography.body2,
+			color: theme.palette.text.secondary,
+			flex: 1,
 		},
 	});
 
-	// For unauthenticated users, show a simple message without sign-in buttons
-	// since we assume users should already be logged in to use the app
+	// For unauthenticated users, show welcome screen with login/register buttons
 	if (!authenticated || !user) {
 		return (
 			<SafeArea>
 				<Container>
-					<View style={styles.header}>
-						<Text style={styles.title}>Profile</Text>
-					</View>
-					<Animated.View entering={FadeInUp.springify()} style={styles.guestState}>
-						<Text style={styles.guestIcon}>👤</Text>
-						<Text style={styles.guestTitle}>Profile Unavailable</Text>
-						<Text style={styles.guestDescription}>
-							Your profile information will be available once you're properly authenticated with the app.
-						</Text>
-					</Animated.View>
+					<ScrollView
+						showsVerticalScrollIndicator={false}
+						contentContainerStyle={{ flexGrow: 1, justifyContent: "center" }}
+					>
+						<Animated.View entering={FadeInUp.springify()} style={styles.guestContainer}>
+							{/* Welcome Icon/Logo */}
+							<View style={styles.guestIconContainer}>
+								<LinearGradient
+									colors={[theme.palette.primary.main, theme.palette.primary.dark, theme.palette.secondary.main]}
+									start={{ x: 0, y: 0 }}
+									end={{ x: 1, y: 1 }}
+									style={styles.guestIconGradient}
+								>
+									<Ionicons name="person-circle" size={80} color={theme.palette.common.white} />
+								</LinearGradient>
+							</View>
+
+							{/* Welcome Text */}
+							<Text style={styles.welcomeTitle}>Welcome to Kenix</Text>
+							<Text style={styles.welcomeSubtitle}>
+								Sign in to access your orders, favorites, and more
+							</Text>
+
+							{/* Sign In Button (Gradient) */}
+							<Animated.View entering={FadeInUp.delay(100).springify()} style={styles.authButtonContainer}>
+								<Button
+									title="Sign In"
+									variant="gradient"
+									size="large"
+									fullWidth
+									onPress={() => router.push("/auth/login" as any)}
+									icon={<Ionicons name="log-in-outline" size={20} color={theme.palette.common.white} />}
+								/>
+							</Animated.View>
+
+							{/* Create Account Button (Outlined) */}
+							<Animated.View entering={FadeInUp.delay(200).springify()} style={styles.authButtonContainer}>
+								<Button
+									title="Create Account"
+									variant="outlined"
+									size="large"
+									fullWidth
+									onPress={() => router.push("/auth/register" as any)}
+									icon={<Ionicons name="person-add-outline" size={20} color={theme.palette.primary.main} />}
+								/>
+							</Animated.View>
+
+							{/* Guest Features Preview */}
+							<Animated.View entering={FadeInUp.delay(300).springify()} style={styles.guestFeaturesContainer}>
+								<Text style={styles.guestFeaturesTitle}>Why create an account?</Text>
+								<View style={styles.guestFeatureItem}>
+									<View style={[styles.guestFeatureIcon, { backgroundColor: `${theme.palette.success.main}20` }]}>
+										<Ionicons name="checkmark-circle" size={20} color={theme.palette.success.main} />
+									</View>
+									<Text style={styles.guestFeatureText}>Track your orders in real-time</Text>
+								</View>
+								<View style={styles.guestFeatureItem}>
+									<View style={[styles.guestFeatureIcon, { backgroundColor: `${theme.palette.info.main}20` }]}>
+										<Ionicons name="heart" size={20} color={theme.palette.info.main} />
+									</View>
+									<Text style={styles.guestFeatureText}>Save your favorite products</Text>
+								</View>
+								<View style={styles.guestFeatureItem}>
+									<View style={[styles.guestFeatureIcon, { backgroundColor: `${theme.palette.warning.main}20` }]}>
+										<Ionicons name="flash" size={20} color={theme.palette.warning.main} />
+									</View>
+									<Text style={styles.guestFeatureText}>Faster checkout process</Text>
+								</View>
+							</Animated.View>
+						</Animated.View>
+					</ScrollView>
 				</Container>
 			</SafeArea>
 		);

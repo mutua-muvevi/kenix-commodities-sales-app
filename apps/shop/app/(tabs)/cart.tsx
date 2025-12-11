@@ -41,7 +41,7 @@ const CartScreen = () => {
 
 					<View style={styles.itemDetails}>
 						<Text style={styles.itemPrice}>
-							${item.unitPrice.toFixed(2)} per {item.unitOfMeasure}
+							KES {(item.unitPrice || 0).toFixed(2)} per {item.unitOfMeasure}
 						</Text>
 						<Text style={styles.itemStock}>{item.inStock ? "In Stock" : "Out of Stock"}</Text>
 					</View>
@@ -65,7 +65,7 @@ const CartScreen = () => {
 							<Ionicons name="add" size={20} color={theme.palette.primary.main} />
 						</TouchableOpacity>
 
-						<Text style={styles.subtotal}>${(item.unitPrice * item.quantity).toFixed(2)}</Text>
+						<Text style={styles.subtotal}>KES {((item.unitPrice || 0) * item.quantity).toFixed(2)}</Text>
 					</View>
 				</Card>
 			</Animated.View>
@@ -225,8 +225,8 @@ const CartScreen = () => {
 		<Animated.View entering={FadeInUp.delay(200).springify()}>
 			<Card style={styles.summary}>
 				<View style={styles.summaryRow}>
-					<Text style={styles.summaryLabel}>Items ({totalItems})</Text>
-					<Text style={styles.summaryValue}>KES {totalPrice.toFixed(2)}</Text>
+					<Text style={styles.summaryLabel}>Items ({totalItems || 0})</Text>
+					<Text style={styles.summaryValue}>KES {(totalPrice || 0).toFixed(2)}</Text>
 				</View>
 				<View style={styles.summaryRow}>
 					<Text style={styles.summaryLabel}>Delivery</Text>
@@ -234,7 +234,7 @@ const CartScreen = () => {
 				</View>
 				<View style={styles.totalRow}>
 					<Text style={styles.totalLabel}>Total</Text>
-					<Text style={styles.totalValue}>KES {totalPrice.toFixed(2)}</Text>
+					<Text style={styles.totalValue}>KES {(totalPrice || 0).toFixed(2)}</Text>
 				</View>
 
 				<View style={styles.actions}>
