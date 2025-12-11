@@ -1,44 +1,34 @@
-import React, { useEffect, useState, useRef, useMemo } from 'react';
+import { useEffect, useState } from 'react';
 import { View, StyleSheet, Text, Platform } from 'react-native';
-import MapView, { Marker, Polyline, PROVIDER_GOOGLE, Region } from 'react-native-maps';
+import MapView, { Marker, Polyline, Polygon, Circle, PROVIDER_GOOGLE, Region } from 'react-native-maps';
 import * as Location from 'expo-location';
-import type { Delivery } from '../types';
-import { calculateDistance, formatDistance } from '../services/location';
-import { formatETA } from '../utils/routeOptimization';
+import type { Shop } from '../types';
+import {
+  createRouteCorridor,
+  type RoutePoint,
+  type DeviationStatus,
+} from '../services/deviation';
 
 interface RouteMapProps {
-  deliveries: Delivery[];
-  currentDeliveryId?: string;
+  shop: Shop;
   style?: any;
-  showAllStops?: boolean; // Show all stops or just current
+  deviationStatus?: DeviationStatus | null;
+  showCorridor?: boolean;
+  remainingShops?: Shop[];
 }
 
 export default function RouteMap({
-  deliveries,
-  currentDeliveryId,
+  shop,
   style,
-  showAllStops = true,
+  deviationStatus,
+  showCorridor = true,
+  remainingShops = [],
 }: RouteMapProps) {
   const [currentLocation, setCurrentLocation] = useState<{
     lat: number;
     lng: number;
   } | null>(null);
   const [region, setRegion] = useState<Region | null>(null);
-  const mapRef = useRef<MapView>(null);
-
-  // Memoize deliveries to prevent unnecessary re-renders
-  const displayDeliveries = useMemo(() => {
-    if (!showAllStops && currentDeliveryId) {
-      // Show only current delivery
-      return deliveries.filter((d) => d._id === currentDeliveryId);
-    }
-    return deliveries;
-  }, [deliveries, currentDeliveryId, showAllStops]);
-
-  // Memoize current delivery index
-  const currentIndex = useMemo(() => {
-    return deliveries.findIndex((d) => d._id === currentDeliveryId);
-  }, [deliveries, currentDeliveryId]);
 
   useEffect(() => {
     let subscription: Location.LocationSubscription;
@@ -86,72 +76,27 @@ export default function RouteMap({
     return () => {
       subscription?.remove();
     };
-  }, [deliveries]);
+  }, [shop]);
 
   const updateRegion = (currentCoords: { lat: number; lng: number }) => {
-    if (displayDeliveries.length === 0) return;
+    const shopLat = shop.location.coordinates[1];
+    const shopLng = shop.location.coordinates[0];
 
-    // Calculate bounds to fit all markers
-    let minLat = currentCoords.lat;
-    let maxLat = currentCoords.lat;
-    let minLng = currentCoords.lng;
-    let maxLng = currentCoords.lng;
+    // Calculate midpoint
+    const midLat = (currentCoords.lat + shopLat) / 2;
+    const midLng = (currentCoords.lng + shopLng) / 2;
 
-    displayDeliveries.forEach((delivery) => {
-      const shopLat = delivery.shopId.location.coordinates[1];
-      const shopLng = delivery.shopId.location.coordinates[0];
-
-      minLat = Math.min(minLat, shopLat);
-      maxLat = Math.max(maxLat, shopLat);
-      minLng = Math.min(minLng, shopLng);
-      maxLng = Math.max(maxLng, shopLng);
-    });
-
-    // Calculate center and deltas
-    const centerLat = (minLat + maxLat) / 2;
-    const centerLng = (minLng + maxLng) / 2;
-    const latDelta = (maxLat - minLat) * 1.5; // Add 50% padding
-    const lngDelta = (maxLng - minLng) * 1.5;
+    // Calculate deltas to fit both points
+    const latDelta = Math.abs(currentCoords.lat - shopLat) * 2.5;
+    const lngDelta = Math.abs(currentCoords.lng - shopLng) * 2.5;
 
     setRegion({
-      latitude: centerLat,
-      longitude: centerLng,
+      latitude: midLat,
+      longitude: midLng,
       latitudeDelta: Math.max(latDelta, 0.01),
       longitudeDelta: Math.max(lngDelta, 0.01),
     });
   };
-
-  // Generate polyline coordinates
-  const polylineCoordinates = useMemo(() => {
-    if (!currentLocation || displayDeliveries.length === 0) return [];
-
-    const coords = [
-      {
-        latitude: currentLocation.lat,
-        longitude: currentLocation.lng,
-      },
-    ];
-
-    displayDeliveries.forEach((delivery) => {
-      coords.push({
-        latitude: delivery.shopId.location.coordinates[1],
-        longitude: delivery.shopId.location.coordinates[0],
-      });
-    });
-
-    return coords;
-  }, [currentLocation, displayDeliveries]);
-
-  // Calculate distance to next shop
-  const distanceToNext = useMemo(() => {
-    if (!currentLocation || displayDeliveries.length === 0) return null;
-
-    const nextDelivery = displayDeliveries[0];
-    const shopLat = nextDelivery.shopId.location.coordinates[1];
-    const shopLng = nextDelivery.shopId.location.coordinates[0];
-
-    return calculateDistance(currentLocation.lat, currentLocation.lng, shopLat, shopLng);
-  }, [currentLocation, displayDeliveries]);
 
   if (!currentLocation || !region) {
     return (
@@ -161,104 +106,177 @@ export default function RouteMap({
     );
   }
 
+  const shopLat = shop.location.coordinates[1];
+  const shopLng = shop.location.coordinates[0];
+
+  // Build route polyline (current location -> current shop -> remaining shops)
+  const routePolyline: RoutePoint[] = [
+    currentLocation,
+    { lat: shopLat, lng: shopLng },
+    ...remainingShops.map((s) => ({
+      lat: s.location.coordinates[1],
+      lng: s.location.coordinates[0],
+    })),
+  ];
+
+  // Create route corridor for visualization
+  const corridorPolygon = showCorridor
+    ? createRouteCorridor(routePolyline.slice(0, 2)) // Just show corridor to next shop
+    : [];
+
+  // Get deviation color based on status
+  const deviationColor = deviationStatus?.color || '#4CAF50';
+  const deviationText =
+    deviationStatus?.message || 'Monitoring route...';
+
   return (
     <View style={[styles.container, style]}>
       <MapView
-        ref={mapRef}
         provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : undefined}
         style={styles.map}
         region={region}
         showsUserLocation
         showsMyLocationButton
-        followsUserLocation={false}
-        loadingEnabled
+        followsUserLocation
       >
-        {/* Polyline connecting all stops */}
-        {polylineCoordinates.length > 1 && (
-          <Polyline
-            coordinates={polylineCoordinates}
-            strokeColor="#0066CC"
-            strokeWidth={3}
-            lineDashPattern={[1]}
+        {/* Route Corridor (acceptable deviation zone) */}
+        {showCorridor && corridorPolygon.length > 0 && (
+          <Polygon
+            coordinates={corridorPolygon.map((p) => ({
+              latitude: p.lat,
+              longitude: p.lng,
+            }))}
+            fillColor="rgba(0, 102, 204, 0.1)"
+            strokeColor="rgba(0, 102, 204, 0.3)"
+            strokeWidth={1}
           />
         )}
 
-        {/* Shop markers with numbers */}
-        {displayDeliveries.map((delivery, index) => {
-          const shop = delivery.shopId;
-          const shopLat = shop.location.coordinates[1];
-          const shopLng = shop.location.coordinates[0];
-          const isCurrent = delivery._id === currentDeliveryId;
-          const isCompleted = delivery.status === 'completed';
-          const isPending = delivery.status === 'pending';
+        {/* Geofence Circle around current shop (100m arrival zone) */}
+        <Circle
+          center={{
+            latitude: shopLat,
+            longitude: shopLng,
+          }}
+          radius={100} // 100 meters
+          fillColor="rgba(76, 175, 80, 0.1)"
+          strokeColor="rgba(76, 175, 80, 0.5)"
+          strokeWidth={2}
+        />
 
-          // Determine marker color
-          let pinColor = '#0066CC'; // Default blue
-          if (isCompleted) {
-            pinColor = '#4CAF50'; // Green for completed
-          } else if (isCurrent) {
-            pinColor = '#FF9800'; // Orange for current
-          } else if (isPending) {
-            pinColor = '#999999'; // Grey for pending
+        {/* Current Shop Marker */}
+        <Marker
+          coordinate={{
+            latitude: shopLat,
+            longitude: shopLng,
+          }}
+          title={shop.shopName}
+          description={shop.address}
+          pinColor="#FF0000"
+        />
+
+        {/* Remaining Shops Markers (if provided) */}
+        {remainingShops.map((s, index) => (
+          <Marker
+            key={s._id}
+            coordinate={{
+              latitude: s.location.coordinates[1],
+              longitude: s.location.coordinates[0],
+            }}
+            title={`Stop ${index + 2}: ${s.shopName}`}
+            description={s.address}
+            pinColor="#FFA500"
+            opacity={0.6}
+          />
+        ))}
+
+        {/* Route Line from current location to current shop */}
+        <Polyline
+          coordinates={[
+            {
+              latitude: currentLocation.lat,
+              longitude: currentLocation.lng,
+            },
+            {
+              latitude: shopLat,
+              longitude: shopLng,
+            },
+          ]}
+          strokeColor={deviationColor}
+          strokeWidth={4}
+          lineDashPattern={
+            deviationStatus?.severity === 'warning' ||
+            deviationStatus?.severity === 'critical'
+              ? [10, 5]
+              : undefined
           }
+        />
 
-          return (
-            <Marker
-              key={delivery._id}
-              coordinate={{
-                latitude: shopLat,
-                longitude: shopLng,
-              }}
-              title={shop.shopName}
-              description={`Stop ${delivery.deliverySequence} - ${shop.address}`}
-              pinColor={pinColor}
-            >
-              {/* Custom marker with number */}
-              <View
-                style={[
-                  styles.markerContainer,
-                  isCurrent && styles.currentMarker,
-                  isCompleted && styles.completedMarker,
-                ]}
-              >
-                <Text style={styles.markerText}>{delivery.deliverySequence}</Text>
-              </View>
-            </Marker>
-          );
-        })}
+        {/* Route Line through remaining shops (if provided) */}
+        {remainingShops.length > 0 && (
+          <Polyline
+            coordinates={remainingShops.map((s) => ({
+              latitude: s.location.coordinates[1],
+              longitude: s.location.coordinates[0],
+            }))}
+            strokeColor="#0066CC"
+            strokeWidth={3}
+            lineDashPattern={[5, 5]}
+            opacity={0.5}
+          />
+        )}
       </MapView>
 
-      {/* Distance badge */}
-      {distanceToNext !== null && (
-        <View style={styles.distanceBadge}>
-          <Text style={styles.distanceLabel}>Next Stop</Text>
-          <Text style={styles.distanceValue}>{formatDistance(distanceToNext)}</Text>
+      {/* Deviation Status Banner */}
+      {deviationStatus && (
+        <View
+          style={[
+            styles.deviationBanner,
+            { backgroundColor: deviationColor },
+          ]}
+        >
+          <View
+            style={[
+              styles.deviationIndicator,
+              {
+                backgroundColor:
+                  deviationStatus.severity === 'none'
+                    ? '#FFFFFF'
+                    : deviationStatus.severity === 'minor'
+                    ? '#FFEB3B'
+                    : deviationStatus.severity === 'warning'
+                    ? '#FF9800'
+                    : '#F44336',
+              },
+            ]}
+          />
+          <Text style={styles.deviationText}>{deviationText}</Text>
+          {deviationStatus.distanceFromRoute > 0 && (
+            <Text style={styles.deviationDistance}>
+              {deviationStatus.distanceFromRoute < 1
+                ? `${Math.round(deviationStatus.distanceFromRoute * 1000)}m`
+                : `${deviationStatus.distanceFromRoute.toFixed(1)}km`}{' '}
+              from route
+            </Text>
+          )}
         </View>
       )}
 
-      {/* Route summary */}
-      {showAllStops && displayDeliveries.length > 1 && (
-        <View style={styles.routeSummary}>
-          <View style={styles.summaryRow}>
-            <View style={styles.legendItem}>
-              <View style={[styles.legendDot, { backgroundColor: '#FF9800' }]} />
-              <Text style={styles.legendText}>Current</Text>
-            </View>
-            <View style={styles.legendItem}>
-              <View style={[styles.legendDot, { backgroundColor: '#0066CC' }]} />
-              <Text style={styles.legendText}>Upcoming</Text>
-            </View>
-            <View style={styles.legendItem}>
-              <View style={[styles.legendDot, { backgroundColor: '#4CAF50' }]} />
-              <Text style={styles.legendText}>Completed</Text>
-            </View>
-          </View>
-          <Text style={styles.summaryText}>
-            {displayDeliveries.filter((d) => d.status === 'completed').length} of{' '}
-            {displayDeliveries.length} stops completed
-          </Text>
+      {/* Legend */}
+      <View style={styles.legend}>
+        <View style={styles.legendItem}>
+          <View style={[styles.legendDot, { backgroundColor: '#4CAF50' }]} />
+          <Text style={styles.legendText}>Arrival Zone (100m)</Text>
         </View>
-      )}
+        {showCorridor && (
+          <View style={styles.legendItem}>
+            <View
+              style={[styles.legendDot, { backgroundColor: '#0066CC', opacity: 0.3 }]}
+            />
+            <Text style={styles.legendText}>Safe Corridor (500m)</Text>
+          </View>
+        )}
+      </View>
     </View>
   );
 }
@@ -267,6 +285,7 @@ const styles = StyleSheet.create({
   container: {
     overflow: 'hidden',
     borderRadius: 12,
+    position: 'relative',
   },
   map: {
     width: '100%',
@@ -281,99 +300,67 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#666666',
   },
-  markerContainer: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#0066CC',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 3,
-    borderColor: '#FFFFFF',
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 3,
-    elevation: 5,
-  },
-  currentMarker: {
-    backgroundColor: '#FF9800',
-    borderWidth: 4,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-  },
-  completedMarker: {
+  deviationBanner: {
+    position: 'absolute',
+    top: 12,
+    left: 12,
+    right: 12,
     backgroundColor: '#4CAF50',
-  },
-  markerText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  distanceBadge: {
-    position: 'absolute',
-    top: 16,
-    right: 16,
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 16,
+    paddingHorizontal: 12,
     paddingVertical: 10,
-    borderRadius: 20,
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-  distanceLabel: {
-    fontSize: 11,
-    color: '#666666',
-    fontWeight: '500',
-    marginBottom: 2,
-  },
-  distanceValue: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#0066CC',
-  },
-  routeSummary: {
-    position: 'absolute',
-    bottom: 16,
-    left: 16,
-    right: 16,
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 12,
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-  summaryRow: {
+    borderRadius: 8,
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 8,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  deviationIndicator: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    marginRight: 8,
+  },
+  deviationText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+    flex: 1,
+  },
+  deviationDistance: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  legend: {
+    position: 'absolute',
+    bottom: 12,
+    left: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 3,
   },
   legendItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    marginVertical: 2,
   },
   legendDot: {
     width: 10,
     height: 10,
     borderRadius: 5,
+    marginRight: 6,
   },
   legendText: {
-    fontSize: 12,
-    color: '#666666',
-  },
-  summaryText: {
-    fontSize: 13,
-    color: '#1A1A1A',
-    fontWeight: '600',
-    textAlign: 'center',
+    fontSize: 11,
+    color: '#333333',
   },
 });

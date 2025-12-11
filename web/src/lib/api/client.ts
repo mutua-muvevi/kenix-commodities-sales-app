@@ -121,25 +121,43 @@ apiClient.interceptors.response.use(
   }
 );
 
+// Helper function to get auth token from localStorage (for WebSocket)
+export const getAuthToken = (): string | null => {
+  if (typeof window === 'undefined') return null;
+
+  try {
+    const authStorage = localStorage.getItem('auth-storage');
+    if (authStorage) {
+      const parsed = JSON.parse(authStorage);
+      return parsed?.state?.token || null;
+    }
+  } catch {
+    // Ignore parsing errors
+  }
+  return null;
+};
+
 // Helper function to handle API errors
-export const handleApiError = (error: any): string => {
-  if (error.response) {
+export const handleApiError = (error: AxiosError | Error | unknown): string => {
+  const axiosError = error as AxiosError<{ message?: string; error?: string; errors?: string[] }>;
+  if (axiosError.response) {
     // Server responded with error
-    const message = error.response.data?.message || error.response.data?.error;
+    const message = axiosError.response.data?.message || axiosError.response.data?.error;
     if (message) return message;
 
     // Handle validation errors
-    if (error.response.data?.errors && Array.isArray(error.response.data.errors)) {
-      return error.response.data.errors.join(', ');
+    if (axiosError.response.data?.errors && Array.isArray(axiosError.response.data.errors)) {
+      return axiosError.response.data.errors.join(', ');
     }
 
-    return `Error: ${error.response.status} - ${error.response.statusText}`;
-  } else if (error.request) {
+    return `Error: ${axiosError.response.status} - ${axiosError.response.statusText}`;
+  } else if (axiosError.request) {
     // Request was made but no response
     return 'No response from server. Please check your connection.';
   } else {
     // Something else happened
-    return error.message || 'An unexpected error occurred';
+    const err = error as Error;
+    return err.message || 'An unexpected error occurred';
   }
 };
 

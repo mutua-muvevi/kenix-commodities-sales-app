@@ -8,37 +8,26 @@ import {
   queueOfflineAction,
   clearCachedRoute,
 } from '../services/offline';
-import {
-  setActiveRouteForMonitoring,
-  clearActiveRouteMonitoring,
-  checkDeviationStatus,
-} from '../services/location';
-import {
-  buildRoutePolyline,
-  type RoutePoint,
-  type DeviationStatus,
-} from '../services/deviation';
 import { useNetworkStore } from './networkStore';
 import type { Route, Delivery, Wallet } from '../types';
+import { optimizeDeliveryRoute, calculateETAs, type OptimizedDelivery } from '../utils/routeOptimization';
+import { getCurrentLocation } from '../services/location';
 
 // WebSocket event listeners for real-time updates
 let websocketInitialized = false;
-let deviationCheckInterval: NodeJS.Timeout | null = null;
 
 interface RouteState {
   activeRoute: Route | null;
   currentDelivery: Delivery | null;
+  optimizedDeliveries: OptimizedDelivery[];
   wallet: Wallet | null;
   isLoading: boolean;
   error: string | null;
 
-  // Deviation monitoring state
-  deviationStatus: DeviationStatus | null;
-  isDeviationMonitoring: boolean;
-
   // Actions
   loadActiveRoute: (riderId: string) => Promise<void>;
   loadCurrentDelivery: () => Promise<void>;
+  optimizeRoute: (currentLocation?: { lat: number; lng: number } | null) => void;
   loadWallet: (riderId: string) => Promise<void>;
   markArrival: (deliveryId: string, location: { lat: number; lng: number }) => Promise<void>;
   completeDelivery: (
@@ -55,21 +44,15 @@ interface RouteState {
   clearError: () => void;
   initializeWebSocketListeners: (riderId: string) => void;
   cleanupWebSocketListeners: () => void;
-
-  // Deviation monitoring actions
-  startDeviationMonitoring: (riderId: string, riderName: string) => void;
-  stopDeviationMonitoring: () => void;
-  updateDeviationStatus: (status: DeviationStatus | null) => void;
 }
 
 export const useRouteStore = create<RouteState>((set, get) => ({
   activeRoute: null,
   currentDelivery: null,
+  optimizedDeliveries: [],
   wallet: null,
   isLoading: false,
   error: null,
-  deviationStatus: null,
-  isDeviationMonitoring: false,
 
   loadActiveRoute: async (riderId: string) => {
     set({ isLoading: true, error: null });
@@ -88,34 +71,11 @@ export const useRouteStore = create<RouteState>((set, get) => ({
           const currentDelivery = await routeService.getCurrentDelivery(route._id);
           set({ currentDelivery });
 
-          // Update deviation monitoring with new route
-          if (get().isDeviationMonitoring) {
-            const { activeRoute } = get();
-            if (activeRoute) {
-              const remainingDeliveries = activeRoute.deliveries.filter(
-                (d) => d.status !== 'completed' && d.status !== 'failed'
-              );
-              const remainingShops = remainingDeliveries.map((d) => d.shopId);
-
-              // Get current location and build route
-              const location = await import('../services/location').then(m => m.getCurrentLocation());
-              if (location) {
-                const routePolyline = buildRoutePolyline(location, remainingShops);
-                const user = await import('../store/authStore').then(m => m.useAuthStore.getState().user);
-                if (user) {
-                  setActiveRouteForMonitoring(
-                    riderId,
-                    `${user.name}`,
-                    activeRoute._id,
-                    routePolyline
-                  );
-                }
-              }
-            }
-          }
+          // Optimize route on load
+          const location = await getCurrentLocation();
+          get().optimizeRoute(location);
         } else {
           clearCachedRoute();
-          get().stopDeviationMonitoring();
         }
       } else {
         // Offline: load from cache
@@ -127,6 +87,10 @@ export const useRouteStore = create<RouteState>((set, get) => ({
             (d) => d.status !== 'completed' && d.status !== 'failed'
           ) || null;
           set({ currentDelivery });
+
+          // Optimize cached route
+          const location = await getCurrentLocation();
+          get().optimizeRoute(location);
 
           Toast.show({
             type: 'info',
@@ -152,6 +116,10 @@ export const useRouteStore = create<RouteState>((set, get) => ({
         ) || null;
         set({ currentDelivery });
 
+        // Optimize cached route
+        const location = await getCurrentLocation();
+        get().optimizeRoute(location);
+
         Toast.show({
           type: 'warning',
           text1: 'Connection Error',
@@ -164,6 +132,24 @@ export const useRouteStore = create<RouteState>((set, get) => ({
         });
       }
     }
+  },
+
+  optimizeRoute: (currentLocation?: { lat: number; lng: number } | null) => {
+    const { activeRoute } = get();
+    if (!activeRoute || activeRoute.deliveries.length === 0) {
+      set({ optimizedDeliveries: [] });
+      return;
+    }
+
+    // Optimize deliveries based on current location
+    const optimized = optimizeDeliveryRoute(activeRoute.deliveries, currentLocation || null);
+
+    // Calculate ETAs for each stop
+    const withETAs = calculateETAs(optimized);
+
+    set({ optimizedDeliveries: withETAs });
+
+    console.log(`Route optimized: ${optimized.length} deliveries ordered by proximity`);
   },
 
   loadCurrentDelivery: async () => {
@@ -195,6 +181,28 @@ export const useRouteStore = create<RouteState>((set, get) => ({
 
   markArrival: async (deliveryId: string, location: { lat: number; lng: number }) => {
     set({ isLoading: true, error: null });
+
+    // Client-side sequential validation
+    const { currentDelivery } = get();
+    if (currentDelivery && currentDelivery._id !== deliveryId) {
+      set({ error: 'You must complete deliveries in sequence', isLoading: false });
+      Toast.show({
+        type: 'error',
+        text1: 'Delivery Locked',
+        text2: 'Please complete the current delivery first',
+      });
+      throw new Error('Sequential delivery violation');
+    }
+
+    if (currentDelivery && !currentDelivery.canProceed) {
+      set({ error: 'This delivery is locked', isLoading: false });
+      Toast.show({
+        type: 'error',
+        text1: 'Delivery Locked',
+        text2: 'Complete previous delivery or wait for admin unlock',
+      });
+      throw new Error('Delivery is locked');
+    }
 
     const { isOnline } = useNetworkStore.getState();
 
@@ -263,6 +271,28 @@ export const useRouteStore = create<RouteState>((set, get) => ({
     }
   ) => {
     set({ isLoading: true, error: null });
+
+    // Client-side sequential validation
+    const { currentDelivery } = get();
+    if (currentDelivery && currentDelivery._id !== deliveryId) {
+      set({ error: 'You must complete deliveries in sequence', isLoading: false });
+      Toast.show({
+        type: 'error',
+        text1: 'Delivery Locked',
+        text2: 'Please complete the current delivery first',
+      });
+      throw new Error('Sequential delivery violation');
+    }
+
+    if (currentDelivery && !currentDelivery.canProceed) {
+      set({ error: 'This delivery is locked', isLoading: false });
+      Toast.show({
+        type: 'error',
+        text1: 'Delivery Locked',
+        text2: 'Complete previous delivery or wait for admin unlock',
+      });
+      throw new Error('Delivery is locked');
+    }
 
     const { isOnline } = useNetworkStore.getState();
 
@@ -409,6 +439,38 @@ export const useRouteStore = create<RouteState>((set, get) => ({
       });
     });
 
+    // Listen for skip request acknowledgment
+    websocketService.on('rider:skip-request-received', (data: any) => {
+      console.log('Skip request acknowledged by admin:', data);
+      Toast.show({
+        type: 'info',
+        text1: 'Request Received',
+        text2: 'Admin has been notified. Waiting for approval...',
+      });
+    });
+
+    // Listen for skip approval
+    websocketService.on('admin:skip-approved', async (data: any) => {
+      console.log('Skip approved by admin via WebSocket:', data);
+      await get().loadActiveRoute(riderId);
+
+      Toast.show({
+        type: 'success',
+        text1: 'Skip Approved',
+        text2: data?.message || 'You can now proceed to the next shop',
+      });
+    });
+
+    // Listen for skip rejection
+    websocketService.on('admin:skip-rejected', (data: any) => {
+      console.log('Skip rejected by admin via WebSocket:', data);
+      Toast.show({
+        type: 'error',
+        text1: 'Skip Request Rejected',
+        text2: data?.message || 'Admin denied the skip request. Please try to complete delivery.',
+      });
+    });
+
     websocketInitialized = true;
   },
 
@@ -421,78 +483,9 @@ export const useRouteStore = create<RouteState>((set, get) => ({
     websocketService.off('payment:confirmed', () => {});
     websocketService.off('payment:failed', () => {});
     websocketService.off('admin:shop-unlocked', () => {});
+    websocketService.off('rider:skip-request-received', () => {});
+    websocketService.off('admin:skip-approved', () => {});
+    websocketService.off('admin:skip-rejected', () => {});
     websocketInitialized = false;
-  },
-
-  // Start deviation monitoring
-  startDeviationMonitoring: (riderId: string, riderName: string) => {
-    const { activeRoute, isDeviationMonitoring } = get();
-
-    if (isDeviationMonitoring || !activeRoute) return;
-
-    console.log('Starting deviation monitoring...');
-
-    // Build expected route from remaining deliveries
-    const remainingDeliveries = activeRoute.deliveries.filter(
-      (d) => d.status !== 'completed' && d.status !== 'failed'
-    );
-
-    if (remainingDeliveries.length === 0) {
-      console.log('No remaining deliveries, skipping deviation monitoring');
-      return;
-    }
-
-    // Get remaining shops
-    const remainingShops = remainingDeliveries.map((d) => d.shopId);
-
-    // Start periodic deviation checks
-    deviationCheckInterval = setInterval(async () => {
-      try {
-        const status = await checkDeviationStatus();
-        if (status) {
-          set({ deviationStatus: status });
-        }
-      } catch (error) {
-        console.error('Deviation check error:', error);
-      }
-    }, 10000); // Check every 10 seconds
-
-    // Initialize route monitoring in location service
-    import('../services/location').then(async (m) => {
-      const location = await m.getCurrentLocation();
-      if (location) {
-        const routePolyline = buildRoutePolyline(location, remainingShops);
-        setActiveRouteForMonitoring(riderId, riderName, activeRoute._id, routePolyline);
-      }
-    });
-
-    set({ isDeviationMonitoring: true });
-
-    Toast.show({
-      type: 'info',
-      text1: 'Route Monitoring Active',
-      text2: 'Stay on route for safe delivery',
-    });
-  },
-
-  // Stop deviation monitoring
-  stopDeviationMonitoring: () => {
-    if (deviationCheckInterval) {
-      clearInterval(deviationCheckInterval);
-      deviationCheckInterval = null;
-    }
-
-    clearActiveRouteMonitoring();
-    set({
-      isDeviationMonitoring: false,
-      deviationStatus: null,
-    });
-
-    console.log('Deviation monitoring stopped');
-  },
-
-  // Update deviation status
-  updateDeviationStatus: (status: DeviationStatus | null) => {
-    set({ deviationStatus: status });
   },
 }));

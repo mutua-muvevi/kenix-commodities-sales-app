@@ -1,384 +1,148 @@
-# Sales Agent App - Quick Reference Guide
+# Quick Reference: Creating Shop Owner Accounts
 
-## Essential File Locations
+## For Sales Agents
 
-### Authentication
-- **Login Screen**: `app/(auth)/login.tsx`
-- **Auth Store**: `store/authStore.ts`
-- **Auth Service**: `services/api.ts` (login/logout methods)
+### Method 1: During Shop Registration
 
-### Shop Registration
-- **4-Step Wizard**: `app/shop/register.tsx`
-- **Location Picker**: `components/LocationPicker.tsx`
-- **Photo Capture**: `components/ShopPhotoCapture.tsx`
-- **Shop Store**: `store/shopStore.ts`
+**When to use:** When registering a new shop
 
-### Shops Management
-- **Shops List/Map**: `app/(tabs)/shops.tsx`
-- **Shop Details**: `app/shop/[id].tsx`
+**Steps:**
+1. Complete Steps 1-4 of shop registration
+   - Basic Information
+   - Location
+   - Shop Photo
+   - Operating Hours
 
-### Orders
-- **Order Screen**: `app/(tabs)/orders.tsx` (create + history)
+2. **Step 5: Shop Owner Account**
+   - Toggle ON "Create Login Account"
+   - Enter shop owner's email address
+   - Click "Generate" for automatic password (or enter manually)
+   - Optional: Enable "Send credentials via SMS"
 
-### Performance & Dashboard
-- **Main Dashboard**: `app/(tabs)/dashboard.tsx`
-- **Performance Metrics**: `app/(tabs)/performance.tsx`
+3. Click "Register Shop"
 
-### Profile
-- **Profile Screen**: `app/(tabs)/profile.tsx`
+4. **Credentials will appear in a modal:**
+   - Shop Name
+   - Login Email
+   - Temporary Password
 
-### Navigation
-- **Tab Layout**: `app/(tabs)/_layout.tsx` (5 tabs)
-- **Root Layout**: `app/_layout.tsx` (auth guards + WebSocket)
-- **Entry Point**: `app/index.tsx`
+5. **Share the credentials:**
+   - Copy to Clipboard (tap copy buttons)
+   - Share via WhatsApp (sends pre-filled message)
+   - Share via SMS (opens SMS app)
 
-### Services
-- **API Client**: `services/api.ts`
-- **WebSocket**: `services/websocket.ts`
+6. Confirm "I've shared the credentials"
 
-### Configuration
-- **Expo Config**: `app.json`
-- **Dependencies**: `package.json`
+7. Done! Shop registered and owner has login access.
 
----
+### Method 2: From Shop Details Screen
 
-## Key API Endpoints
+**When to use:** For existing shops without accounts
 
-### Authentication
-```
-POST /api/user/login
-```
+**Steps:**
+1. Open shop from your shops list
+2. Scroll to "Shop Owner Account" section
+3. If no account exists, you'll see "No login account created"
+4. Click "Create Account" button
+5. Enter email and generate/enter password
+6. Click "Create Account"
+7. Credentials modal appears
+8. Share credentials (same options as Method 1)
+9. Done!
 
-### Shops
-```
-POST /api/user/register (role: 'shop')
-GET /api/user/fetch/all?role=shop&createdBy={agentId}&approvalStatus={status}
-GET /api/user/fetch/{shopId}
-```
+### Resending Credentials
 
-### Products
-```
-GET /api/products?isInStock=true&category={category}
-```
+**If shop owner lost their credentials:**
 
-### Orders
-```
-POST /api/orders
-GET /api/orders?createdBy={agentId}
-GET /api/orders/{orderId}
-```
+1. Open shop details
+2. Scroll to "Shop Owner Account" section
+3. If account exists, you'll see "Active" badge with email
+4. Click "Resend Credentials"
+5. Confirm action
+6. SMS app opens with pre-filled message
+7. Send to shop owner
 
-### Profile
-```
-GET /api/user/profile
-PUT /api/user/profile
-PUT /api/user/change-password
-```
+## Important Notes
 
----
+### Email Requirements
+- Must be valid email format (e.g., shop@example.com)
+- Must be unique (not already registered)
+- This will be used for shop owner login
 
-## WebSocket Events
+### Password Requirements
+- Minimum 8 characters
+- Auto-generated passwords are secure and readable
+- Shop owner can change password after first login
 
-### Listened Events
-- `shop:approved` - Shop approval notification
-- `shop:rejected` - Shop rejection with reason
-- `order:update` - Order status change
-- `order:approved` - Order approved by admin
-- `order:delivered` - Order delivered + commission
-- `commission:paid` - Commission payment received
-- `notification` - Generic notification
+### Sharing Best Practices
+1. **Verify shop owner's contact info first**
+2. **Use WhatsApp or SMS** (not verbal)
+3. **Confirm shop owner received credentials**
+4. **Tell shop owner to:**
+   - Download the Kenix Shop app
+   - Log in with the email and password
+   - Change password after first login
 
----
-
-## State Management (Zustand)
-
-### Auth Store (`store/authStore.ts`)
-```typescript
-const { user, token, isAuthenticated, isLoading, login, logout, loadStoredAuth } = useAuthStore();
-```
-
-### Shop Store (`store/shopStore.ts`)
-```typescript
-const { shops, isLoading, error, selectedShop, fetchShops, setSelectedShop, registerShop } = useShopStore();
-```
-
----
-
-## Running the App
-
-### Development
-```bash
-# Install dependencies
-npm install
-
-# Start Expo dev server
-npm start
-
-# Run on Android
-npm run android
-
-# Run on iOS
-npm run ios
-```
-
-### Testing
-```bash
-# Start backend first
-# Backend should run on http://192.168.100.6:3001
-
-# Then start app
-npm start
-```
-
----
-
-## Common Tasks
-
-### Adding a New Tab
-1. Create file in `app/(tabs)/newtab.tsx`
-2. Add `<Tabs.Screen>` in `app/(tabs)/_layout.tsx`
-
-### Creating New API Endpoint
-1. Add method in `services/api.ts`
-2. Use in component: `await apiService.methodName()`
-
-### Adding New Store
-1. Create `store/newStore.ts`
-2. Define interface and create with `create()`
-3. Use in component: `const { state, actions } = useNewStore()`
-
-### Adding WebSocket Event
-1. Open `services/websocket.ts`
-2. Add listener in `setupEventListeners()`
-3. Implement notification logic
-
----
-
-## Environment Variables
-
-Update these before production:
-
-### app.json
-```json
-{
-  "android": {
-    "config": {
-      "googleMaps": {
-        "apiKey": "YOUR_GOOGLE_MAPS_API_KEY"  // ← Replace this
-      }
-    }
-  }
-}
-```
-
-### services/api.ts
-```typescript
-const BASE_URL = 'http://192.168.100.6:3001/api';  // ← Update for production
-```
-
-### services/websocket.ts
-```typescript
-const WS_URL = 'http://192.168.100.6:3001';  // ← Update for production
-```
-
----
+### Security Tips
+- Never share credentials publicly
+- Don't write credentials on paper
+- Always use the app's sharing features
+- Confirm receipt with shop owner
 
 ## Troubleshooting
 
-### WebSocket Not Connecting
-1. Check backend is running
-2. Verify URL in `services/websocket.ts`
-3. Check JWT token in SecureStore
-4. Look for connection errors in console
+### "Email already exists" error
+- **Solution:** Use a different email address
+- **Why:** This email is already registered in the system
 
-### Google Maps Not Showing
-1. Verify API key in `app.json`
-2. Enable Maps SDK for Android/iOS in Google Cloud Console
-3. Check location permissions granted
+### "Invalid email format" error
+- **Solution:** Check email spelling and format
+- **Example:** Must be like "shop@example.com"
 
-### Photos Not Saving
-1. Check camera permissions
-2. Verify photo URI format
-3. Test with gallery picker instead
-4. Check backend accepts multipart/form-data
+### "Password too short" error
+- **Solution:** Use auto-generate or enter 8+ characters
+- **Why:** Security requirement
 
-### Authentication Fails
-1. Verify backend running
-2. Check user role is 'sales_agent'
-3. Check network connectivity
-4. Verify API endpoint URL
+### Shop registered but account creation failed
+- **Don't worry:** Shop is saved!
+- **Solution:** Go to shop details and use "Create Account" button
+- **Why:** Temporary network or server issue
 
-### App Crashes on Launch
-1. Clear Expo cache: `npx expo start -c`
-2. Reinstall dependencies: `rm -rf node_modules && npm install`
-3. Check for TypeScript errors
-4. Review recent changes
+### WhatsApp/SMS not opening
+- **Check:** Is the app installed on your device?
+- **Alternative:** Use copy to clipboard and paste manually
 
----
+## FAQ
 
-## Testing Credentials
+**Q: Is creating an account required?**
+A: No, it's optional. You can skip Step 5 during registration.
 
-Create these test users in backend:
+**Q: Can I create an account later?**
+A: Yes! Use the "Create Account" button on shop details screen.
 
-```javascript
-// Sales Agent
-email: 'agent@kenix.com'
-password: 'password123'
-role: 'sales_agent'
+**Q: What if the shop owner forgets their password?**
+A: Currently, use "Resend Credentials" to send them the login instructions. They'll need to contact support for password reset.
 
-// Another Sales Agent
-email: 'agent2@kenix.com'
-password: 'password123'
-role: 'sales_agent'
-```
+**Q: Can I change the email later?**
+A: Not currently. Be sure to enter the correct email initially.
 
----
+**Q: How do I know if a shop has an account?**
+A: Open shop details and check the "Shop Owner Account" section. You'll see "Active" badge if account exists.
 
-## Key Features Summary
+**Q: What should I tell the shop owner?**
+A: Tell them:
+- Download the Kenix Shop app
+- Use the email and password you sent
+- They can change the password after logging in
+- They can start placing orders immediately
 
-### ✅ Authentication
-- JWT token storage
-- Role verification
-- Auto-login
+## Support
 
-### ✅ Shop Registration
-- 4-step wizard
-- GPS location
-- Camera integration
-- Form validation
-
-### ✅ Shop Management
-- List & map views
-- Status filtering
-- Shop details
-- Call & navigate
-
-### ✅ Order Placement
-- Shop selection
-- Product catalog
-- Search & filter
-- Cart management
-
-### ✅ Performance
-- Weekly/monthly metrics
-- Commission tracking
-- Conversion rate
-- Insights
-
-### ✅ Profile
-- Edit information
-- Change password
-- Logout
-
-### ✅ Notifications
-- Real-time updates
-- Push notifications
-- WebSocket events
+If you encounter any issues not covered here:
+- Contact your supervisor
+- Report bugs through the app feedback system
+- Check the help section in the app
 
 ---
 
-## Production Checklist
-
-Before deploying to production:
-
-- [ ] Update backend URLs
-- [ ] Add Google Maps API key
-- [ ] Configure app signing
-- [ ] Test on physical devices
-- [ ] Set up app store accounts
-- [ ] Prepare screenshots
-- [ ] Write app descriptions
-- [ ] Create privacy policy
-- [ ] Enable crash reporting
-- [ ] Set up analytics
-- [ ] Configure push notification certificates
-- [ ] Test payment flows (if applicable)
-- [ ] Complete security audit
-- [ ] Load test backend
-- [ ] Set up staging environment
-
----
-
-## Support & Resources
-
-### Documentation
-- Implementation Report: `IMPLEMENTATION_REPORT.md`
-- Testing Guide: `TESTING_GUIDE.md`
-- Expo Docs: https://docs.expo.dev/
-- React Native Docs: https://reactnative.dev/
-
-### Expo Dependencies
-- expo-router: File-based routing
-- expo-location: GPS/location services
-- expo-camera: Camera access
-- expo-secure-store: Secure token storage
-- expo-notifications: Push notifications
-
-### Third-Party Libraries
-- zustand: State management
-- axios: HTTP client
-- socket.io-client: WebSocket client
-- react-native-maps: Maps integration
-
----
-
-## Quick Commands Reference
-
-```bash
-# Start development server
-npm start
-
-# Clear cache
-npx expo start -c
-
-# Install new dependency
-npm install package-name
-
-# Update dependencies
-npm update
-
-# Build for Android
-eas build --platform android
-
-# Build for iOS
-eas build --platform ios
-
-# Submit to stores
-eas submit
-
-# Check for updates
-npx expo-doctor
-
-# Install EAS CLI
-npm install -g eas-cli
-
-# Login to Expo
-eas login
-
-# Configure build
-eas build:configure
-```
-
----
-
-## File Size Reference
-
-| File | Lines | Purpose |
-|------|-------|---------|
-| `app/shop/register.tsx` | 667 | 4-step shop registration wizard |
-| `app/(tabs)/orders.tsx` | 974 | Order creation & history |
-| `app/(tabs)/shops.tsx` | 519 | Shops list & map view |
-| `app/shop/[id].tsx` | 595 | Shop details screen |
-| `app/(tabs)/dashboard.tsx` | 441 | Main dashboard |
-| `app/(tabs)/performance.tsx` | ~450 | Performance metrics |
-| `app/(tabs)/profile.tsx` | ~450 | Profile management |
-| `services/websocket.ts` | ~250 | WebSocket service |
-| `services/api.ts` | 176 | API client |
-| `components/LocationPicker.tsx` | 221 | GPS map picker |
-| `components/ShopPhotoCapture.tsx` | 296 | Camera component |
-
----
-
-**Last Updated:** 2025-11-09
-**Version:** 1.0.0
-**Status:** Production Ready
+**Remember:** Creating shop owner accounts helps shops order independently, saving you time on repeat orders!

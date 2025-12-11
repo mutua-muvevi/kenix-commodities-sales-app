@@ -6,6 +6,7 @@
  * - Delivery status changes
  * - Order updates
  * - Admin dashboard notifications
+ * - Route deviation alerts (theft prevention)
  *
  * Authentication: JWT token required for connection
  */
@@ -13,6 +14,7 @@
 const socketIO = require('socket.io');
 const jwt = require('jsonwebtoken');
 const User = require('../models/user');
+const RouteDeviation = require('../models/routeDeviations');
 const logger = require('../utils/logger');
 
 let io;
@@ -121,9 +123,6 @@ const initializeWebSocket = (server) => {
 					timestamp: timestamp || new Date(),
 				});
 
-				// TODO: Optionally update location in database
-				// await User.findByIdAndUpdate(user._id, { location: { type: 'Point', coordinates: [location.lng, location.lat] } });
-
 				socket.emit('rider:location-acknowledged', {
 					message: 'Location updated successfully',
 					timestamp: new Date(),
@@ -131,6 +130,224 @@ const initializeWebSocket = (server) => {
 			} catch (error) {
 				logger.error('Rider location update error:', error);
 				socket.emit('error', { message: 'Failed to update location' });
+			}
+		});
+
+		/**
+		 * ROUTE DEVIATION ALERT (NEW - Theft Prevention)
+		 * Riders (or background service) report route deviations
+		 * Admin dashboard receives real-time alerts
+		 */
+		socket.on('rider:route-deviation', async (data) => {
+			if (user.role !== 'rider') {
+				socket.emit('error', { message: 'Only riders can report deviations' });
+				return;
+			}
+
+			try {
+				const {
+					routeId,
+					currentLocation,
+					expectedRoute,
+					deviationDistance,
+					severity,
+					currentDeliveryId,
+				} = data;
+
+				// Validate deviation data
+				if (!routeId || !currentLocation || !deviationDistance || !severity) {
+					socket.emit('error', { message: 'Invalid deviation data' });
+					return;
+				}
+
+				// Log deviation to database
+				const deviation = await RouteDeviation.logDeviation({
+					riderId: user._id,
+					riderName: `${user.firstName} ${user.lastName}`,
+					routeId,
+					currentDeliveryId,
+					actualLocation: currentLocation,
+					expectedLocation: expectedRoute && expectedRoute[0] ? expectedRoute[0] : currentLocation,
+					deviationDistance,
+					severity,
+				});
+
+				// Send real-time alert to admin dashboard (only for warning/critical)
+				if (severity === 'warning' || severity === 'critical') {
+					io.to('admin').emit('rider:route-deviation-alert', {
+						deviationId: deviation._id,
+						riderId: user._id,
+						riderName: `${user.firstName} ${user.lastName}`,
+						routeId,
+						currentLocation,
+						expectedRoute,
+						deviationDistance,
+						severity,
+						timestamp: new Date(),
+						message: severity === 'critical'
+							? `CRITICAL: Rider ${user.firstName} is ${deviationDistance.toFixed(1)}km off route!`
+							: `Warning: Rider ${user.firstName} is deviating from route`,
+					});
+
+					logger.warn(`Route deviation detected: Rider ${user._id}, ${deviationDistance}km, ${severity}`);
+				}
+
+				// Acknowledge to rider app
+				socket.emit('rider:deviation-acknowledged', {
+					deviationId: deviation._id,
+					message: 'Deviation logged',
+					timestamp: new Date(),
+				});
+			} catch (error) {
+				logger.error('Route deviation alert error:', error);
+				socket.emit('error', { message: 'Failed to process deviation alert' });
+			}
+		});
+
+		/**
+		 * SHOP UNLOCK REQUEST (Existing - Enhanced with location)
+		 * Rider requests admin to unlock next shop when current shop is unavailable
+		 */
+		socket.on('rider:request-shop-unlock', async (data) => {
+			if (user.role !== 'rider') {
+				socket.emit('error', { message: 'Only riders can request unlock' });
+				return;
+			}
+
+			try {
+				const { deliveryId, reason, shopId, location } = data;
+
+				// Notify admin dashboard
+				io.to('admin').emit('rider:unlock-request', {
+					riderId: user._id,
+					riderName: `${user.firstName} ${user.lastName}`,
+					deliveryId,
+					shopId,
+					reason,
+					location,
+					timestamp: new Date(),
+					message: `${user.firstName} ${user.lastName} requests to unlock next shop: ${reason}`,
+				});
+
+				// Acknowledge to rider
+				socket.emit('rider:unlock-requested', {
+					message: 'Admin has been notified',
+					timestamp: new Date(),
+				});
+
+				logger.info(`Shop unlock requested: Rider ${user._id}, Delivery ${deliveryId}, Reason: ${reason}`);
+			} catch (error) {
+				logger.error('Shop unlock request error:', error);
+				socket.emit('error', { message: 'Failed to request unlock' });
+			}
+		});
+
+		/**
+		 * ADMIN SHOP UNLOCK (Admin sends unlock confirmation to rider)
+		 */
+		socket.on('admin:unlock-shop', (data) => {
+			if (user.role !== 'admin') {
+				socket.emit('error', { message: 'Only admins can unlock shops' });
+				return;
+			}
+
+			try {
+				const { riderId, deliveryId, message } = data;
+
+				// Notify rider
+				io.to(`user:${riderId}`).emit('admin:shop-unlocked', {
+					deliveryId,
+					message: message || 'Admin has unlocked the next shop for you',
+					timestamp: new Date(),
+				});
+
+				logger.info(`Admin ${user._id} unlocked shop for rider ${riderId}, delivery ${deliveryId}`);
+			} catch (error) {
+				logger.error('Admin shop unlock error:', error);
+			}
+		});
+
+		/**
+		 * SKIP REQUEST FROM RIDER
+		 * Rider requests to skip unavailable shop
+		 */
+		socket.on('rider:request-skip', (data) => {
+			if (user.role !== 'rider') {
+				socket.emit('error', { message: 'Only riders can request skip' });
+				return;
+			}
+
+			try {
+				const { deliveryId, shopId, reason, notes, photo, location, timestamp } = data;
+
+				// Validate required data
+				if (!deliveryId || !shopId || !reason || !notes) {
+					socket.emit('error', { message: 'Missing required skip request data' });
+					return;
+				}
+
+				// Broadcast to admin dashboard
+				io.to('admin').emit('rider:request-skip', {
+					type: 'skip_request',
+					deliveryId,
+					riderId: user._id,
+					riderName: `${user.firstName} ${user.lastName}`,
+					shopId,
+					reason,
+					notes,
+					photo,
+					location,
+					requestedAt: timestamp || new Date(),
+					message: `${user.firstName} ${user.lastName} requests to skip a shop`,
+				});
+
+				// Acknowledge to rider
+				socket.emit('rider:skip-request-received', {
+					deliveryId,
+					message: 'Your skip request has been sent to admin',
+					timestamp: new Date(),
+				});
+
+				logger.info(`Skip request from rider ${user._id} for delivery ${deliveryId}`);
+			} catch (error) {
+				logger.error('Skip request error:', error);
+				socket.emit('error', { message: 'Failed to process skip request' });
+			}
+		});
+
+		/**
+		 * SKIP APPROVAL FROM ADMIN
+		 * Admin approves or rejects skip request
+		 */
+		socket.on('admin:resolve-skip', (data) => {
+			if (user.role !== 'admin') {
+				socket.emit('error', { message: 'Only admins can resolve skip requests' });
+				return;
+			}
+
+			try {
+				const { deliveryId, riderId, approved, message } = data;
+
+				// Validate required data
+				if (!deliveryId || !riderId || typeof approved !== 'boolean') {
+					socket.emit('error', { message: 'Missing required resolution data' });
+					return;
+				}
+
+				// Send resolution to rider
+				const event = approved ? 'admin:skip-approved' : 'admin:skip-rejected';
+				io.to(`user:${riderId}`).emit(event, {
+					deliveryId,
+					approved,
+					message: message || (approved ? 'Skip approved. Proceed to next shop.' : 'Skip rejected. Please attempt delivery.'),
+					resolvedBy: user._id,
+					resolvedAt: new Date(),
+				});
+
+				logger.info(`Skip ${approved ? 'approved' : 'rejected'} by admin ${user._id} for delivery ${deliveryId}`);
+			} catch (error) {
+				logger.error('Skip resolution error:', error);
+				socket.emit('error', { message: 'Failed to process skip resolution' });
 			}
 		});
 

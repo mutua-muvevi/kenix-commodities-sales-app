@@ -155,4 +155,28 @@ router.post(
 	adminUnlockDelivery
 );
 
+/**
+ * @route   POST /api/deliveries/:deliveryId/request-skip
+ * @desc    Request to skip unavailable shop
+ * @access  Private (rider only)
+ */
+router.post(
+	'/:deliveryId/request-skip',
+	checkRole(['rider']),
+	validateObjectId('deliveryId'),
+	requestSkip
+);
+
+/**
+ * @route   POST /api/deliveries/:deliveryId/resolve-skip
+ * @desc    Approve or reject skip request
+ * @access  Private (admin only)
+ */
+router.post(
+	'/:deliveryId/resolve-skip',
+	checkRole(['admin']),
+	validateObjectId('deliveryId'),
+	resolveSkipRequest
+);
+
 module.exports = router;
