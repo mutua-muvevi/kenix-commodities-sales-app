@@ -6,12 +6,18 @@ interface ShopCardProps {
   delivery: Delivery;
   currentSequence: number;
   totalDeliveries: number;
+  isLocked?: boolean;
+  onPressLocked?: () => void;
 }
 
-export default function ShopCard({ delivery, currentSequence, totalDeliveries }: ShopCardProps) {
+export default function ShopCard({ delivery, currentSequence, totalDeliveries, isLocked = false, onPressLocked }: ShopCardProps) {
   const shop = delivery.shopId;
 
   const handleCall = () => {
+    if (isLocked) {
+      onPressLocked?.();
+      return;
+    }
     Linking.openURL(`tel:${shop.phoneNumber}`);
   };
 
@@ -19,11 +25,34 @@ export default function ShopCard({ delivery, currentSequence, totalDeliveries }:
     return `KES ${amount.toLocaleString()}`;
   };
 
+  const handleCardPress = () => {
+    if (isLocked && onPressLocked) {
+      onPressLocked();
+    }
+  };
+
   return (
-    <View style={styles.container}>
+    <TouchableOpacity
+      style={[styles.container, isLocked && styles.containerLocked]}
+      onPress={handleCardPress}
+      disabled={!isLocked}
+      activeOpacity={isLocked ? 0.7 : 1}
+    >
+      {/* Lock Overlay */}
+      {isLocked && (
+        <View style={styles.lockOverlay}>
+          <View style={styles.lockIconContainer}>
+            <Ionicons name="lock-closed" size={48} color="#999999" />
+            <Text style={styles.lockTitle}>Locked</Text>
+            <Text style={styles.lockMessage}>Complete previous delivery first</Text>
+          </View>
+        </View>
+      )}
+
       {/* Header */}
       <View style={styles.header}>
-        <View style={styles.sequenceBadge}>
+        <View style={[styles.sequenceBadge, isLocked && styles.sequenceBadgeLocked]}>
+          {isLocked && <Ionicons name="lock-closed" size={14} color="#FFFFFF" style={styles.lockIcon} />}
           <Text style={styles.sequenceText}>
             Stop {currentSequence} of {totalDeliveries}
           </Text>
@@ -68,7 +97,7 @@ export default function ShopCard({ delivery, currentSequence, totalDeliveries }:
         <Text style={styles.totalLabel}>Total to Collect</Text>
         <Text style={styles.totalAmount}>{formatCurrency(delivery.totalAmount)}</Text>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 }
 
@@ -98,6 +127,42 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
+    position: 'relative',
+  },
+  containerLocked: {
+    opacity: 0.6,
+    backgroundColor: '#F5F5F5',
+  },
+  lockOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 10,
+  },
+  lockIconContainer: {
+    alignItems: 'center',
+  },
+  lockTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#666666',
+    marginTop: 12,
+  },
+  lockMessage: {
+    fontSize: 14,
+    color: '#999999',
+    marginTop: 8,
+    textAlign: 'center',
+    paddingHorizontal: 20,
+  },
+  lockIcon: {
+    marginRight: 6,
   },
   header: {
     flexDirection: 'row',
@@ -110,6 +175,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  sequenceBadgeLocked: {
+    backgroundColor: '#999999',
   },
   sequenceText: {
     color: '#FFFFFF',

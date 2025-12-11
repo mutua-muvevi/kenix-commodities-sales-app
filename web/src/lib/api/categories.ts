@@ -6,15 +6,36 @@ export interface Category {
   categoryName: string;
   description?: string;
   image?: string;
+  parent?: string | Category;
+  displayOrder?: number;
+  isActive?: boolean;
+  productsCount?: number;
   createdAt: string;
   updatedAt: string;
 }
 
+export interface CreateCategoryData {
+  categoryName: string;
+  description?: string;
+  image?: string;
+  parent?: string;
+  displayOrder?: number;
+  isActive?: boolean;
+}
+
+export interface CategoryListParams {
+  page?: number;
+  limit?: number;
+  search?: string;
+  parent?: string;
+  isActive?: boolean;
+}
+
 /**
- * Get all categories
+ * Get list of categories with pagination
  */
-export const getCategories = async () => {
-  const response = await apiClient.get('/categories');
+export const getCategories = async (params?: CategoryListParams) => {
+  const response = await apiClient.get('/categories', { params });
   return response.data;
 };
 
@@ -29,7 +50,7 @@ export const getCategory = async (categoryId: string) => {
 /**
  * Create category (Admin only)
  */
-export const createCategory = async (data: { categoryName: string; description?: string; image?: string }) => {
+export const createCategory = async (data: CreateCategoryData) => {
   const response = await apiClient.post('/categories', data);
   return response.data;
 };
@@ -37,7 +58,7 @@ export const createCategory = async (data: { categoryName: string; description?:
 /**
  * Update category (Admin only)
  */
-export const updateCategory = async (categoryId: string, data: Partial<Category>) => {
+export const updateCategory = async (categoryId: string, data: Partial<CreateCategoryData>) => {
   const response = await apiClient.patch(`/categories/${categoryId}`, data);
   return response.data;
 };

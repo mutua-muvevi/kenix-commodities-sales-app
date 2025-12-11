@@ -112,24 +112,16 @@ const completeDelivery = async (req, res) => {
 			}
 		}
 
-		// Update rider wallet - credit the payment (reduce negative balance)
+		// Update rider wallet - record payment collection (increases balance from negative)
 		const riderWallet = await RiderWallet.findOne({ rider: riderId }).session(session);
 		if (riderWallet && order) {
-			riderWallet.currentBalance += order.totalPrice;
-			riderWallet.totalDeliveries += 1;
-
-			// Add transaction record
-			riderWallet.transactions.push({
-				type: 'credit',
-				amount: order.totalPrice,
-				description: `Delivery ${delivery.deliveryCode} completed`,
-				relatedOrder: order._id,
-				relatedDelivery: delivery._id,
-				balanceAfter: riderWallet.currentBalance,
-				timestamp: new Date(),
-			});
-
-			await riderWallet.save({ session });
+			// Use the recordCollection method which handles transaction recording
+			await riderWallet.recordCollection(
+				delivery._id,
+				order.totalPrice,
+				null, // mpesaTransactionId - can be added if payment was via M-Pesa
+				riderId
+			);
 		}
 
 		// Update route progress
@@ -194,6 +186,17 @@ const completeDelivery = async (req, res) => {
 			routeProgress: route.currentProgress.currentShopIndex
 		});
 
+		// WebSocket: Notify rider about wallet update
+		if (riderWallet) {
+			emitToUser(riderId.toString(), 'wallet:updated', {
+				balance: riderWallet.balance,
+				totalCollected: riderWallet.totalCollected,
+				outstandingAmount: riderWallet.outstandingAmount,
+				collectionPercentage: riderWallet.collectionPercentage,
+				message: `Payment collected: KES ${order?.totalPrice.toLocaleString() || 0}`
+			});
+		}
+
 		return res.status(200).json({
 			success: true,
 			message: nextShopData
@@ -213,7 +216,13 @@ const completeDelivery = async (req, res) => {
 						(route.currentProgress.currentShopIndex / allShops.length) * 100
 					),
 				},
-				walletBalance: riderWallet ? riderWallet.currentBalance : 0,
+				wallet: riderWallet ? {
+					balance: riderWallet.balance,
+					totalLoadedAmount: riderWallet.totalLoadedAmount,
+					totalCollected: riderWallet.totalCollected,
+					outstandingAmount: riderWallet.outstandingAmount,
+					collectionPercentage: riderWallet.collectionPercentage,
+				} : null,
 			},
 		});
 	} catch (error) {

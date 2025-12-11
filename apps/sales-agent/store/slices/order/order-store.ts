@@ -16,9 +16,13 @@ interface OrderState {
   orders: Order[];
   cart: CartItem[];
   selectedOrder: Order | null;
+  selectedShop: any | null;
   offlineOrders: OfflineOrder[];
   isLoading: boolean;
   error: string | null;
+  isOnBehalfOrder: boolean;
+  paymentMethod: 'cash' | 'mpesa' | 'credit';
+  notifyShopOwner: boolean;
 
   // Cart Actions
   addToCart: (product: Product, quantity: number) => void;
@@ -32,10 +36,17 @@ interface OrderState {
   fetchOrders: (agentId: string, status?: OrderStatus) => Promise<void>;
   fetchOrderById: (orderId: string) => Promise<Order>;
   placeOrder: (orderData: OrderFormData) => Promise<Order>;
+  placeOrderOnBehalf: (shopId: string, orderData: Partial<OrderFormData>) => Promise<Order>;
   queueOfflineOrder: (orderData: OrderFormData) => void;
   syncOfflineOrders: () => Promise<void>;
   setSelectedOrder: (order: Order | null) => void;
+  setSelectedShop: (shop: any | null) => void;
+  setPaymentMethod: (method: 'cash' | 'mpesa' | 'credit') => void;
+  setNotifyShopOwner: (notify: boolean) => void;
   updateOrderStatus: (orderId: string, status: OrderStatus) => void;
+  calculateCommission: (orderTotal: number) => number;
+  getOnBehalfOrders: () => Order[];
+  getMyDirectOrders: () => Order[];
   clearError: () => void;
   refreshOrders: (agentId: string) => Promise<void>;
 }
@@ -47,9 +58,13 @@ export const useOrderStore = create<OrderState>()(
       orders: [],
       cart: [],
       selectedOrder: null,
+      selectedShop: null,
       offlineOrders: [],
       isLoading: false,
       error: null,
+      isOnBehalfOrder: true, // Default to on-behalf for sales agents
+      paymentMethod: 'cash',
+      notifyShopOwner: true,
 
       // Add to Cart
       addToCart: (product: Product, quantity: number) => {
@@ -331,6 +346,63 @@ export const useOrderStore = create<OrderState>()(
       refreshOrders: async (agentId: string) => {
         actionLogger('OrderStore', 'refreshOrders', agentId);
         await get().fetchOrders(agentId);
+      },
+
+      // Place Order On Behalf
+      placeOrderOnBehalf: async (shopId: string, orderData: Partial<OrderFormData>) => {
+        actionLogger('OrderStore', 'placeOrderOnBehalf', { shopId, orderData });
+
+        const { paymentMethod, notifyShopOwner } = get();
+
+        const completeOrderData: OrderFormData = {
+          shopId,
+          products: orderData.products || [],
+          paymentMethod,
+          deliveryAddress: orderData.deliveryAddress,
+          deliveryNotes: orderData.deliveryNotes,
+          specialInstructions: orderData.specialInstructions,
+          placedOnBehalf: true,
+          notifyShopOwner,
+          commissionRate: 0.05, // 5% commission
+        };
+
+        return get().placeOrder(completeOrderData);
+      },
+
+      // Set Selected Shop
+      setSelectedShop: (shop: any | null) => {
+        actionLogger('OrderStore', 'setSelectedShop', shop?._id);
+        set({ selectedShop: shop });
+      },
+
+      // Set Payment Method
+      setPaymentMethod: (method: 'cash' | 'mpesa' | 'credit') => {
+        actionLogger('OrderStore', 'setPaymentMethod', method);
+        set({ paymentMethod: method });
+      },
+
+      // Set Notify Shop Owner
+      setNotifyShopOwner: (notify: boolean) => {
+        actionLogger('OrderStore', 'setNotifyShopOwner', notify);
+        set({ notifyShopOwner: notify });
+      },
+
+      // Calculate Commission
+      calculateCommission: (orderTotal: number) => {
+        const commissionRate = 0.05; // 5%
+        return orderTotal * commissionRate;
+      },
+
+      // Get On Behalf Orders
+      getOnBehalfOrders: () => {
+        const { orders } = get();
+        return orders.filter((order) => order.placedOnBehalf === true);
+      },
+
+      // Get My Direct Orders
+      getMyDirectOrders: () => {
+        const { orders } = get();
+        return orders.filter((order) => !order.placedOnBehalf);
       },
     }),
     {

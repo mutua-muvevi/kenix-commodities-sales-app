@@ -10,6 +10,8 @@ import {
 } from '../services/offline';
 import { useNetworkStore } from './networkStore';
 import type { Route, Delivery, Wallet } from '../types';
+import { optimizeDeliveryRoute, calculateETAs, type OptimizedDelivery } from '../utils/routeOptimization';
+import { getCurrentLocation } from '../services/location';
 
 // WebSocket event listeners for real-time updates
 let websocketInitialized = false;
@@ -17,6 +19,7 @@ let websocketInitialized = false;
 interface RouteState {
   activeRoute: Route | null;
   currentDelivery: Delivery | null;
+  optimizedDeliveries: OptimizedDelivery[];
   wallet: Wallet | null;
   isLoading: boolean;
   error: string | null;
@@ -24,6 +27,7 @@ interface RouteState {
   // Actions
   loadActiveRoute: (riderId: string) => Promise<void>;
   loadCurrentDelivery: () => Promise<void>;
+  optimizeRoute: (currentLocation?: { lat: number; lng: number } | null) => void;
   loadWallet: (riderId: string) => Promise<void>;
   markArrival: (deliveryId: string, location: { lat: number; lng: number }) => Promise<void>;
   completeDelivery: (
@@ -45,6 +49,7 @@ interface RouteState {
 export const useRouteStore = create<RouteState>((set, get) => ({
   activeRoute: null,
   currentDelivery: null,
+  optimizedDeliveries: [],
   wallet: null,
   isLoading: false,
   error: null,
@@ -65,6 +70,10 @@ export const useRouteStore = create<RouteState>((set, get) => ({
           cacheActiveRoute(route);
           const currentDelivery = await routeService.getCurrentDelivery(route._id);
           set({ currentDelivery });
+
+          // Optimize route on load
+          const location = await getCurrentLocation();
+          get().optimizeRoute(location);
         } else {
           clearCachedRoute();
         }
@@ -78,6 +87,10 @@ export const useRouteStore = create<RouteState>((set, get) => ({
             (d) => d.status !== 'completed' && d.status !== 'failed'
           ) || null;
           set({ currentDelivery });
+
+          // Optimize cached route
+          const location = await getCurrentLocation();
+          get().optimizeRoute(location);
 
           Toast.show({
             type: 'info',
@@ -103,6 +116,10 @@ export const useRouteStore = create<RouteState>((set, get) => ({
         ) || null;
         set({ currentDelivery });
 
+        // Optimize cached route
+        const location = await getCurrentLocation();
+        get().optimizeRoute(location);
+
         Toast.show({
           type: 'warning',
           text1: 'Connection Error',
@@ -115,6 +132,24 @@ export const useRouteStore = create<RouteState>((set, get) => ({
         });
       }
     }
+  },
+
+  optimizeRoute: (currentLocation?: { lat: number; lng: number } | null) => {
+    const { activeRoute } = get();
+    if (!activeRoute || activeRoute.deliveries.length === 0) {
+      set({ optimizedDeliveries: [] });
+      return;
+    }
+
+    // Optimize deliveries based on current location
+    const optimized = optimizeDeliveryRoute(activeRoute.deliveries, currentLocation || null);
+
+    // Calculate ETAs for each stop
+    const withETAs = calculateETAs(optimized);
+
+    set({ optimizedDeliveries: withETAs });
+
+    console.log(`Route optimized: ${optimized.length} deliveries ordered by proximity`);
   },
 
   loadCurrentDelivery: async () => {
@@ -146,6 +181,28 @@ export const useRouteStore = create<RouteState>((set, get) => ({
 
   markArrival: async (deliveryId: string, location: { lat: number; lng: number }) => {
     set({ isLoading: true, error: null });
+
+    // Client-side sequential validation
+    const { currentDelivery } = get();
+    if (currentDelivery && currentDelivery._id !== deliveryId) {
+      set({ error: 'You must complete deliveries in sequence', isLoading: false });
+      Toast.show({
+        type: 'error',
+        text1: 'Delivery Locked',
+        text2: 'Please complete the current delivery first',
+      });
+      throw new Error('Sequential delivery violation');
+    }
+
+    if (currentDelivery && !currentDelivery.canProceed) {
+      set({ error: 'This delivery is locked', isLoading: false });
+      Toast.show({
+        type: 'error',
+        text1: 'Delivery Locked',
+        text2: 'Complete previous delivery or wait for admin unlock',
+      });
+      throw new Error('Delivery is locked');
+    }
 
     const { isOnline } = useNetworkStore.getState();
 
@@ -214,6 +271,28 @@ export const useRouteStore = create<RouteState>((set, get) => ({
     }
   ) => {
     set({ isLoading: true, error: null });
+
+    // Client-side sequential validation
+    const { currentDelivery } = get();
+    if (currentDelivery && currentDelivery._id !== deliveryId) {
+      set({ error: 'You must complete deliveries in sequence', isLoading: false });
+      Toast.show({
+        type: 'error',
+        text1: 'Delivery Locked',
+        text2: 'Please complete the current delivery first',
+      });
+      throw new Error('Sequential delivery violation');
+    }
+
+    if (currentDelivery && !currentDelivery.canProceed) {
+      set({ error: 'This delivery is locked', isLoading: false });
+      Toast.show({
+        type: 'error',
+        text1: 'Delivery Locked',
+        text2: 'Complete previous delivery or wait for admin unlock',
+      });
+      throw new Error('Delivery is locked');
+    }
 
     const { isOnline } = useNetworkStore.getState();
 
@@ -360,6 +439,38 @@ export const useRouteStore = create<RouteState>((set, get) => ({
       });
     });
 
+    // Listen for skip request acknowledgment
+    websocketService.on('rider:skip-request-received', (data: any) => {
+      console.log('Skip request acknowledged by admin:', data);
+      Toast.show({
+        type: 'info',
+        text1: 'Request Received',
+        text2: 'Admin has been notified. Waiting for approval...',
+      });
+    });
+
+    // Listen for skip approval
+    websocketService.on('admin:skip-approved', async (data: any) => {
+      console.log('Skip approved by admin via WebSocket:', data);
+      await get().loadActiveRoute(riderId);
+
+      Toast.show({
+        type: 'success',
+        text1: 'Skip Approved',
+        text2: data?.message || 'You can now proceed to the next shop',
+      });
+    });
+
+    // Listen for skip rejection
+    websocketService.on('admin:skip-rejected', (data: any) => {
+      console.log('Skip rejected by admin via WebSocket:', data);
+      Toast.show({
+        type: 'error',
+        text1: 'Skip Request Rejected',
+        text2: data?.message || 'Admin denied the skip request. Please try to complete delivery.',
+      });
+    });
+
     websocketInitialized = true;
   },
 
@@ -372,6 +483,9 @@ export const useRouteStore = create<RouteState>((set, get) => ({
     websocketService.off('payment:confirmed', () => {});
     websocketService.off('payment:failed', () => {});
     websocketService.off('admin:shop-unlocked', () => {});
+    websocketService.off('rider:skip-request-received', () => {});
+    websocketService.off('admin:skip-approved', () => {});
+    websocketService.off('admin:skip-rejected', () => {});
     websocketInitialized = false;
   },
 }));

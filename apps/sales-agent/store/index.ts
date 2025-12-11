@@ -18,6 +18,7 @@ export { useOrderStore } from './slices/order/order-store';
 export { useRouteStore } from './slices/route/route-store';
 export { useThemeStore, type ThemeMode } from './slices/theme/theme-store';
 export { useNotificationStore } from './slices/notification/notification-store';
+export { useCategoriesStore } from './slices/categories/categories-store';
 
 // ========================
 // HOOKS - AUTH

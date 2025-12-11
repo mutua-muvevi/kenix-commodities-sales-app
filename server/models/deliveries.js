@@ -243,6 +243,54 @@ const DeliverySchema = new Schema({
 		},
 	},
 
+	// Skip request tracking
+	skipRequest: {
+		requested: {
+			type: Boolean,
+			default: false,
+		},
+		requestedAt: {
+			type: Date,
+		},
+		reason: {
+			type: String,
+			enum: ['shop_closed', 'owner_not_present', 'wrong_address', 'refused_delivery', 'other'],
+		},
+		notes: {
+			type: String,
+			trim: true,
+		},
+		photo: {
+			type: String,
+			// URL to evidence photo
+		},
+		requestLocation: {
+			type: {
+				type: String,
+				enum: ['Point'],
+			},
+			coordinates: {
+				type: [Number], // [longitude, latitude]
+			},
+		},
+		status: {
+			type: String,
+			enum: ['pending', 'approved', 'rejected'],
+			default: 'pending',
+		},
+		resolvedBy: {
+			type: Schema.Types.ObjectId,
+			ref: "User",
+		},
+		resolvedAt: {
+			type: Date,
+		},
+		resolution: {
+			type: String,
+			trim: true,
+		},
+	},
+
 	// Delivery items (from order)
 	items: [
 		{

@@ -43,8 +43,8 @@ export const CONFIG = {
   IMAGE_MAX_WIDTH: 1200,
   IMAGE_MAX_HEIGHT: 1200,
   MAX_FILE_SIZE: 5 * 1024 * 1024, // 5MB
-  ALLOWED_IMAGE_TYPES: ['image/jpeg', 'image/jpg', 'image/png'],
-  ALLOWED_DOCUMENT_TYPES: ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'],
+  ALLOWED_IMAGE_TYPES: ['image/jpeg', 'image/jpg', 'image/png'] as string[],
+  ALLOWED_DOCUMENT_TYPES: ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'] as string[],
 
   // Offline/Sync Configuration
   MAX_OFFLINE_QUEUE_SIZE: 100,

@@ -25,6 +25,11 @@ export interface Shop {
   totalOrders?: number;
   totalSpent?: number;
   customerSegment?: CustomerSegment;
+  creditLimit?: number;
+  creditUsed?: number;
+  recentOrders?: any[]; // For quick reorder feature
+  accountActivated?: boolean; // Shop owner has login credentials
+  credentialsSent?: boolean; // Credentials were sent via SMS/WhatsApp
 }
 
 export type ShopStatus = 'pending' | 'approved' | 'rejected';

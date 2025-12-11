@@ -1,57 +1,150 @@
-// app/(tabs)/offers.tsx - New Offers screen to replace search
-import React, { useState } from "react";
-import { View, Text, StyleSheet, FlatList, ScrollView } from "react-native";
-import Animated, { FadeInUp, FadeInRight } from "react-native-reanimated";
+// app/(tabs)/offers.tsx - Polished Offers Screen (Competing with Twiga Foods & Wasoko)
+import React, { useState, useEffect, useRef } from "react";
+import {
+	View,
+	Text,
+	StyleSheet,
+	FlatList,
+	ScrollView,
+	TouchableOpacity,
+	Dimensions,
+	Pressable,
+} from "react-native";
+import Animated, {
+	FadeInUp,
+	FadeInRight,
+	FadeInDown,
+	useAnimatedStyle,
+	useSharedValue,
+	withRepeat,
+	withTiming,
+	interpolate,
+	Extrapolate,
+} from "react-native-reanimated";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import { SafeArea, Container } from "../../components/layout";
 import { Card, SearchBar } from "../../components/ui";
 import { ProductCard } from "../../components/product/ProductCard";
 import { useTheme } from "../../hooks";
-// Note: This import will be uncommented when stores are fixed
-// import { useProducts, useOffers } from "../../store";
+import { useProducts } from "../../store";
+
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
+const BANNER_WIDTH = SCREEN_WIDTH - 32;
+const DEAL_CARD_WIDTH = (SCREEN_WIDTH - 48) / 2;
+
+interface Offer {
+	id: string;
+	title: string;
+	subtitle: string;
+	icon: string;
+	gradient: string[];
+	discount?: string;
+}
+
+interface DealCategory {
+	id: string;
+	title: string;
+	icon: string;
+	color: string;
+}
 
 const OffersScreen = () => {
 	const { theme } = useTheme();
-	// Temporary mock data until stores are fixed
-	const allProducts = { products: [] };
-	const offers = [];
+	const { allProducts, fetchAllProducts, hasProducts } = useProducts();
 	const [searchQuery, setSearchQuery] = useState("");
+	const [selectedCategory, setSelectedCategory] = useState<string>("all");
+	const carouselProgress = useSharedValue(0);
 
-	const filteredOffers = offers.filter((offer) => offer.title.toLowerCase().includes(searchQuery.toLowerCase()));
+	// Auto-scroll animation for carousel
+	useEffect(() => {
+		carouselProgress.value = withRepeat(
+			withTiming(3, { duration: 12000 }),
+			-1,
+			false
+		);
+	}, []);
 
-	const featuredOffers = [
+	// Fetch products on mount
+	useEffect(() => {
+		if (!hasProducts) {
+			fetchAllProducts();
+		}
+	}, []);
+
+	// Deal of the Day - changes daily
+	const dealOfTheDay = allProducts.products[0];
+
+	// Featured promotional banners with eye-catching gradients
+	const featuredBanners = [
 		{
 			id: "1",
 			title: "Flash Sale",
-			subtitle: "Up to 50% off electronics",
-			icon: "⚡",
-			color: theme.palette.error.main,
+			subtitle: "Up to 50% off on selected items",
+			icon: "flash",
+			gradient: [theme.palette.error.main, theme.palette.error.dark],
+			discount: "50%",
+			expiresIn: "2h 45m",
 		},
 		{
 			id: "2",
-			title: "Daily Deals",
-			subtitle: "New deals every day",
-			icon: "🎯",
-			color: theme.palette.success.main,
+			title: "Bulk Discounts",
+			subtitle: "Save more when you buy in bulk",
+			icon: "cube",
+			gradient: [theme.palette.success.main, theme.palette.success.dark],
+			discount: "30%",
+			expiresIn: "24h",
 		},
 		{
 			id: "3",
-			title: "Buy 2 Get 1",
-			subtitle: "Selected grocery items",
-			icon: "🛒",
-			color: theme.palette.warning.main,
-		},
-		{
-			id: "4",
-			title: "Free Delivery",
-			subtitle: "Orders over $50",
-			icon: "🚚",
-			color: theme.palette.info.main,
+			title: "New Arrivals",
+			subtitle: "Fresh stock just delivered",
+			icon: "sparkles",
+			gradient: [theme.palette.info.main, theme.palette.info.dark],
+			discount: "20%",
+			expiresIn: "5d",
 		},
 	];
 
+	// Deal categories with icons
+	const dealCategories: DealCategory[] = [
+		{
+			id: "all",
+			title: "All Deals",
+			icon: "grid",
+			color: theme.palette.primary.main,
+		},
+		{
+			id: "flash",
+			title: "Flash Sale",
+			icon: "flash",
+			color: theme.palette.error.main,
+		},
+		{
+			id: "weekly",
+			title: "Weekly",
+			icon: "calendar",
+			color: theme.palette.success.main,
+		},
+		{
+			id: "bulk",
+			title: "Bulk",
+			icon: "cube",
+			color: theme.palette.warning.main,
+		},
+	];
+
+	const filteredProducts = allProducts.products.filter((product) =>
+		product.name.toLowerCase().includes(searchQuery.toLowerCase())
+	);
+
+	const flashSaleProducts = filteredProducts.slice(0, 6);
+	const weeklySpecials = filteredProducts.slice(6, 12);
+
 	const styles = StyleSheet.create({
+		scrollView: {
+			flex: 1,
+		},
 		header: {
 			paddingVertical: theme.spacing.lg,
 		},
@@ -59,134 +152,402 @@ const OffersScreen = () => {
 			...theme.typography.h2,
 			color: theme.palette.text.primary,
 			fontWeight: "700",
-			marginBottom: theme.spacing.sm,
+			marginBottom: theme.spacing.xs,
 		},
 		subtitle: {
 			...theme.typography.body1,
 			color: theme.palette.text.secondary,
+			marginBottom: theme.spacing.md,
+		},
+		// Carousel Banners
+		carouselContainer: {
 			marginBottom: theme.spacing.lg,
+		},
+		carouselScroll: {
+			paddingHorizontal: theme.spacing.md,
+		},
+		bannerCard: {
+			width: BANNER_WIDTH,
+			height: 180,
+			marginRight: theme.spacing.md,
+			borderRadius: theme.borderRadius.lg,
+			overflow: "hidden",
+		},
+		bannerGradient: {
+			flex: 1,
+			padding: theme.spacing.lg,
+			justifyContent: "space-between",
+		},
+		bannerTop: {
+			flexDirection: "row",
+			justifyContent: "space-between",
+			alignItems: "flex-start",
+		},
+		bannerIconContainer: {
+			width: 56,
+			height: 56,
+			borderRadius: 28,
+			backgroundColor: "rgba(255,255,255,0.2)",
+			justifyContent: "center",
+			alignItems: "center",
+		},
+		discountBadge: {
+			backgroundColor: theme.palette.common.white,
+			paddingHorizontal: theme.spacing.md,
+			paddingVertical: theme.spacing.sm,
+			borderRadius: theme.borderRadius.xl,
+		},
+		discountText: {
+			...theme.typography.h6,
+			color: theme.palette.error.main,
+			fontWeight: "700",
+		},
+		bannerContent: {
+			gap: theme.spacing.xs,
+		},
+		bannerTitle: {
+			...theme.typography.h4,
+			color: theme.palette.common.white,
+			fontWeight: "700",
+		},
+		bannerSubtitle: {
+			...theme.typography.body1,
+			color: "rgba(255,255,255,0.9)",
+		},
+		timerContainer: {
+			flexDirection: "row",
+			alignItems: "center",
+			gap: theme.spacing.xs,
+			marginTop: theme.spacing.xs,
+		},
+		timerText: {
+			...theme.typography.caption,
+			color: theme.palette.common.white,
+			fontWeight: "600",
+		},
+		// Deal of the Day
+		dealOfDayContainer: {
+			marginBottom: theme.spacing.lg,
+		},
+		dealOfDayCard: {
+			marginHorizontal: theme.spacing.md,
+			borderRadius: theme.borderRadius.lg,
+			overflow: "hidden",
+		},
+		dealOfDayGradient: {
+			padding: theme.spacing.lg,
+		},
+		dealOfDayHeader: {
+			flexDirection: "row",
+			alignItems: "center",
+			gap: theme.spacing.sm,
+			marginBottom: theme.spacing.md,
+		},
+		dealOfDayTitle: {
+			...theme.typography.h5,
+			color: theme.palette.common.white,
+			fontWeight: "700",
+			flex: 1,
+		},
+		dealOfDayBadge: {
+			backgroundColor: theme.palette.warning.main,
+			paddingHorizontal: theme.spacing.md,
+			paddingVertical: theme.spacing.xs,
+			borderRadius: theme.borderRadius.md,
+		},
+		dealOfDayBadgeText: {
+			...theme.typography.caption,
+			color: theme.palette.common.white,
+			fontWeight: "700",
+		},
+		dealOfDayContent: {
+			backgroundColor: theme.palette.background.paper,
+			borderRadius: theme.borderRadius.md,
+			padding: theme.spacing.md,
+			flexDirection: "row",
+			gap: theme.spacing.md,
+			alignItems: "center",
+		},
+		dealOfDayImage: {
+			width: 80,
+			height: 80,
+			borderRadius: theme.borderRadius.md,
+			backgroundColor: theme.palette.grey[200],
+		},
+		dealOfDayInfo: {
+			flex: 1,
+		},
+		dealOfDayProductName: {
+			...theme.typography.subtitle1,
+			color: theme.palette.text.primary,
+			fontWeight: "600",
+			marginBottom: theme.spacing.xs,
+		},
+		dealOfDayPrices: {
+			flexDirection: "row",
+			alignItems: "center",
+			gap: theme.spacing.sm,
+			marginBottom: theme.spacing.xs,
+		},
+		dealOfDayOriginalPrice: {
+			...theme.typography.body2,
+			color: theme.palette.text.secondary,
+			textDecorationLine: "line-through",
+		},
+		dealOfDayPrice: {
+			...theme.typography.h6,
+			color: theme.palette.success.main,
+			fontWeight: "700",
+		},
+		dealOfDaySavings: {
+			...theme.typography.caption,
+			color: theme.palette.success.main,
+		},
+		// Categories Filter
+		categoriesContainer: {
+			marginBottom: theme.spacing.lg,
+		},
+		categoriesScroll: {
+			paddingHorizontal: theme.spacing.md,
+		},
+		categoryChip: {
+			paddingHorizontal: theme.spacing.lg,
+			paddingVertical: theme.spacing.sm,
+			borderRadius: theme.borderRadius.xl,
+			marginRight: theme.spacing.sm,
+			borderWidth: 1.5,
+			flexDirection: "row",
+			alignItems: "center",
+			gap: theme.spacing.xs,
+		},
+		categoryChipActive: {
+			borderColor: "transparent",
+		},
+		categoryChipInactive: {
+			backgroundColor: "transparent",
+			borderColor: theme.palette.divider,
+		},
+		categoryChipText: {
+			...theme.typography.body2,
+			fontWeight: "600",
+		},
+		categoryChipTextActive: {
+			color: theme.palette.common.white,
+		},
+		categoryChipTextInactive: {
+			color: theme.palette.text.secondary,
+		},
+		// Section Headers
+		sectionHeader: {
+			flexDirection: "row",
+			justifyContent: "space-between",
+			alignItems: "center",
+			paddingHorizontal: theme.spacing.md,
+			marginBottom: theme.spacing.md,
 		},
 		sectionTitle: {
 			...theme.typography.h5,
 			color: theme.palette.text.primary,
-			marginVertical: theme.spacing.md,
-			marginHorizontal: theme.spacing.md,
+			fontWeight: "700",
+		},
+		sectionViewAll: {
+			...theme.typography.body2,
+			color: theme.palette.primary.main,
 			fontWeight: "600",
 		},
-		offersContainer: {
-			paddingHorizontal: theme.spacing.md,
-			marginBottom: theme.spacing.lg,
-		},
-		offerCard: {
-			marginRight: theme.spacing.md,
-			width: 200,
-			overflow: "hidden",
-		},
-		offerGradient: {
-			padding: theme.spacing.lg,
-			minHeight: 120,
-			justifyContent: "space-between",
-		},
-		offerIcon: {
-			fontSize: 32,
-			alignSelf: "flex-start",
-		},
-		offerTitle: {
-			...theme.typography.h6,
-			color: theme.palette.common.white,
-			fontWeight: "700",
-			marginBottom: theme.spacing.xs,
-		},
-		offerSubtitle: {
-			...theme.typography.body2,
-			color: "rgba(255,255,255,0.9)",
-		},
-		dealSection: {
-			marginBottom: theme.spacing.lg,
-		},
+		// Product Grid
 		productsGrid: {
 			paddingHorizontal: theme.spacing.md,
+			paddingBottom: theme.spacing.lg,
 		},
+		productGridContent: {
+			gap: theme.spacing.md,
+		},
+		// Empty State
 		emptyState: {
 			alignItems: "center",
 			paddingVertical: theme.spacing.xxl,
+			paddingHorizontal: theme.spacing.lg,
 		},
 		emptyIcon: {
-			fontSize: 64,
 			marginBottom: theme.spacing.lg,
 		},
 		emptyTitle: {
 			...theme.typography.h5,
 			color: theme.palette.text.primary,
 			marginBottom: theme.spacing.sm,
+			textAlign: "center",
 		},
 		emptyDescription: {
 			...theme.typography.body2,
 			color: theme.palette.text.secondary,
 			textAlign: "center",
-			paddingHorizontal: theme.spacing.lg,
 		},
-		promotionBanner: {
-			marginHorizontal: theme.spacing.md,
-			marginBottom: theme.spacing.lg,
+		// Shimmer Loading
+		shimmerContainer: {
+			width: BANNER_WIDTH,
+			height: 180,
+			borderRadius: theme.borderRadius.lg,
+			backgroundColor: theme.palette.background.neutral,
 			overflow: "hidden",
-		},
-		bannerGradient: {
-			padding: theme.spacing.xl,
-			alignItems: "center",
-		},
-		bannerTitle: {
-			...theme.typography.h4,
-			color: theme.palette.common.white,
-			fontWeight: "700",
-			textAlign: "center",
-			marginBottom: theme.spacing.sm,
-		},
-		bannerDescription: {
-			...theme.typography.body1,
-			color: "rgba(255,255,255,0.9)",
-			textAlign: "center",
 		},
 	});
 
-	const renderOfferCard = ({ item, index }: { item: any; index: number }) => (
-		<Animated.View entering={FadeInRight.delay(index * 100).springify()}>
-			<Card style={styles.offerCard} variant="elevated">
+	// Render promotional banner with countdown
+	const renderBanner = ({ item, index }: { item: any; index: number }) => (
+		<Animated.View
+			entering={FadeInRight.delay(index * 100).springify()}
+		>
+			<Pressable
+				style={({ pressed }) => [
+					styles.bannerCard,
+					{ opacity: pressed ? 0.9 : 1 },
+				]}
+			>
 				<LinearGradient
-					colors={[item.color, item.color + "CC"]}
+					colors={item.gradient}
 					start={{ x: 0, y: 0 }}
 					end={{ x: 1, y: 1 }}
-					style={styles.offerGradient}
+					style={styles.bannerGradient}
 				>
-					<Text style={styles.offerIcon}>{item.icon}</Text>
-					<View>
-						<Text style={styles.offerTitle}>{item.title}</Text>
-						<Text style={styles.offerSubtitle}>{item.subtitle}</Text>
+					<View style={styles.bannerTop}>
+						<View style={styles.bannerIconContainer}>
+							<Ionicons
+								name={item.icon as any}
+								size={28}
+								color={theme.palette.common.white}
+							/>
+						</View>
+						<View style={styles.discountBadge}>
+							<Text style={styles.discountText}>{item.discount} OFF</Text>
+						</View>
+					</View>
+
+					<View style={styles.bannerContent}>
+						<Text style={styles.bannerTitle}>{item.title}</Text>
+						<Text style={styles.bannerSubtitle}>{item.subtitle}</Text>
+						<View style={styles.timerContainer}>
+							<Ionicons
+								name="time-outline"
+								size={14}
+								color={theme.palette.common.white}
+							/>
+							<Text style={styles.timerText}>Ends in {item.expiresIn}</Text>
+						</View>
 					</View>
 				</LinearGradient>
-			</Card>
+			</Pressable>
 		</Animated.View>
 	);
 
+	// Render category filter chip
+	const renderCategoryChip = (category: DealCategory) => {
+		const isActive = selectedCategory === category.id;
+		return (
+			<Pressable
+				key={category.id}
+				onPress={() => setSelectedCategory(category.id)}
+			>
+				<LinearGradient
+					colors={
+						isActive
+							? [category.color, category.color]
+							: ["transparent", "transparent"]
+					}
+					style={[
+						styles.categoryChip,
+						isActive ? styles.categoryChipActive : styles.categoryChipInactive,
+					]}
+				>
+					<Ionicons
+						name={category.icon as any}
+						size={16}
+						color={
+							isActive
+								? theme.palette.common.white
+								: theme.palette.text.secondary
+						}
+					/>
+					<Text
+						style={[
+							styles.categoryChipText,
+							isActive
+								? styles.categoryChipTextActive
+								: styles.categoryChipTextInactive,
+						]}
+					>
+						{category.title}
+					</Text>
+				</LinearGradient>
+			</Pressable>
+		);
+	};
+
+	// Render product with discount badge
 	const renderProductItem = ({ item, index }: { item: any; index: number }) => (
-		<ProductCard product={item} index={index} />
+		<View style={{ position: "relative" }}>
+			<ProductCard product={item} index={index} />
+			{/* Discount Badge Overlay */}
+			<View
+				style={{
+					position: "absolute",
+					top: 8,
+					left: 8,
+					backgroundColor: theme.palette.error.main,
+					paddingHorizontal: 8,
+					paddingVertical: 4,
+					borderRadius: theme.borderRadius.sm,
+					flexDirection: "row",
+					alignItems: "center",
+					gap: 4,
+				}}
+			>
+				<Ionicons name="flash" size={12} color={theme.palette.common.white} />
+				<Text
+					style={{
+						...theme.typography.caption,
+						color: theme.palette.common.white,
+						fontWeight: "700",
+						fontSize: 10,
+					}}
+				>
+					{Math.floor(Math.random() * 30) + 20}% OFF
+				</Text>
+			</View>
+		</View>
 	);
 
+	// Empty state component
 	const EmptyOffersComponent = () => (
 		<Animated.View entering={FadeInUp.springify()} style={styles.emptyState}>
-			<Text style={styles.emptyIcon}>🎁</Text>
+			<Ionicons
+				name="gift-outline"
+				size={80}
+				color={theme.palette.grey[400]}
+				style={styles.emptyIcon}
+			/>
 			<Text style={styles.emptyTitle}>No Offers Available</Text>
-			<Text style={styles.emptyDescription}>Check back later for amazing deals and special offers!</Text>
+			<Text style={styles.emptyDescription}>
+				Check back later for amazing deals and special offers! We're constantly
+				updating our promotions.
+			</Text>
 		</Animated.View>
 	);
 
 	return (
 		<SafeArea>
 			<Container>
-				<ScrollView showsVerticalScrollIndicator={false}>
+				<ScrollView
+					style={styles.scrollView}
+					showsVerticalScrollIndicator={false}
+					scrollEventThrottle={16}
+				>
+					{/* Header */}
 					<View style={styles.header}>
 						<Text style={styles.title}>Special Offers</Text>
-						<Text style={styles.subtitle}>Discover amazing deals and save more on your favorites</Text>
+						<Text style={styles.subtitle}>
+							Discover amazing deals and save more on your favorites
+						</Text>
 						<SearchBar
 							value={searchQuery}
 							onChangeText={setSearchQuery}
@@ -194,66 +555,172 @@ const OffersScreen = () => {
 						/>
 					</View>
 
-					{/* Promotion Banner */}
-					<Animated.View entering={FadeInUp.springify()}>
-						<Card style={styles.promotionBanner} variant="elevated">
-							<LinearGradient
-								colors={[theme.palette.primary.main, theme.palette.primary.dark]}
-								start={{ x: 0, y: 0 }}
-								end={{ x: 1, y: 1 }}
-								style={styles.bannerGradient}
-							>
-								<Text style={styles.bannerTitle}>🔥 Limited Time Offer</Text>
-								<Text style={styles.bannerDescription}>
-									Get up to 70% off on selected items. Hurry, while stocks last!
-								</Text>
-							</LinearGradient>
-						</Card>
+					{/* Featured Banners Carousel */}
+					<View style={styles.carouselContainer}>
+						<ScrollView
+							horizontal
+							showsHorizontalScrollIndicator={false}
+							snapToInterval={BANNER_WIDTH + 16}
+							decelerationRate="fast"
+							contentContainerStyle={styles.carouselScroll}
+						>
+							{featuredBanners.map((banner, index) =>
+								renderBanner({ item: banner, index })
+							)}
+						</ScrollView>
+					</View>
+
+					{/* Deal of the Day */}
+					{dealOfTheDay && (
+						<Animated.View
+							entering={FadeInDown.delay(200).springify()}
+							style={styles.dealOfDayContainer}
+						>
+							<Card style={styles.dealOfDayCard} variant="elevated">
+								<LinearGradient
+									colors={[
+										theme.palette.secondary.main,
+										theme.palette.secondary.dark,
+									]}
+									start={{ x: 0, y: 0 }}
+									end={{ x: 1, y: 1 }}
+									style={styles.dealOfDayGradient}
+								>
+									<View style={styles.dealOfDayHeader}>
+										<Ionicons
+											name="trophy"
+											size={24}
+											color={theme.palette.common.white}
+										/>
+										<Text style={styles.dealOfDayTitle}>Deal of the Day</Text>
+										<View style={styles.dealOfDayBadge}>
+											<Text style={styles.dealOfDayBadgeText}>
+												LIMITED
+											</Text>
+										</View>
+									</View>
+
+									<View style={styles.dealOfDayContent}>
+										<View style={styles.dealOfDayImage}>
+											<Ionicons
+												name="cube"
+												size={40}
+												color={theme.palette.grey[400]}
+											/>
+										</View>
+										<View style={styles.dealOfDayInfo}>
+											<Text
+												style={styles.dealOfDayProductName}
+												numberOfLines={1}
+											>
+												{dealOfTheDay.name}
+											</Text>
+											<View style={styles.dealOfDayPrices}>
+												<Text style={styles.dealOfDayOriginalPrice}>
+													KES{" "}
+													{(dealOfTheDay.unitPrice * 1.5).toLocaleString()}
+												</Text>
+												<Text style={styles.dealOfDayPrice}>
+													KES {dealOfTheDay.unitPrice.toLocaleString()}
+												</Text>
+											</View>
+											<Text style={styles.dealOfDaySavings}>
+												Save KES{" "}
+												{(dealOfTheDay.unitPrice * 0.5).toLocaleString()}
+											</Text>
+										</View>
+									</View>
+								</LinearGradient>
+							</Card>
+						</Animated.View>
+					)}
+
+					{/* Deal Categories Filter */}
+					<Animated.View
+						entering={FadeInUp.delay(300).springify()}
+						style={styles.categoriesContainer}
+					>
+						<ScrollView
+							horizontal
+							showsHorizontalScrollIndicator={false}
+							contentContainerStyle={styles.categoriesScroll}
+						>
+							{dealCategories.map(renderCategoryChip)}
+						</ScrollView>
 					</Animated.View>
 
-					{/* Featured Offers */}
-					<Text style={styles.sectionTitle}>Featured Deals</Text>
-					<ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.offersContainer}>
-						{featuredOffers.map((offer, index) => (
-							<View key={offer.id}>{renderOfferCard({ item: offer, index })}</View>
-						))}
-					</ScrollView>
+					{/* Flash Sale Section */}
+					<Animated.View entering={FadeInUp.delay(400).springify()}>
+						<View style={styles.sectionHeader}>
+							<View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+								<Ionicons
+									name="flash"
+									size={20}
+									color={theme.palette.error.main}
+								/>
+								<Text style={styles.sectionTitle}>Flash Sale</Text>
+							</View>
+							<TouchableOpacity>
+								<Text style={styles.sectionViewAll}>View All</Text>
+							</TouchableOpacity>
+						</View>
 
-					{/* Deal Products */}
-					<View style={styles.dealSection}>
-						<Text style={styles.sectionTitle}>Deal Products</Text>
-						{allProducts.products.length > 0 ? (
+						{flashSaleProducts.length > 0 ? (
 							<FlatList
-								data={allProducts.products.slice(0, 6)} // Show first 6 products as deals
+								data={flashSaleProducts}
 								renderItem={renderProductItem}
 								keyExtractor={(item) => item._id}
 								numColumns={2}
 								scrollEnabled={false}
 								showsVerticalScrollIndicator={false}
-								columnWrapperStyle={{ justifyContent: "space-between" }}
-								style={styles.productsGrid}
+								columnWrapperStyle={{
+									justifyContent: "space-between",
+									paddingHorizontal: theme.spacing.md,
+								}}
+								contentContainerStyle={{ gap: theme.spacing.md }}
 							/>
 						) : (
 							<EmptyOffersComponent />
 						)}
-					</View>
+					</Animated.View>
 
-					{/* Weekly Specials */}
-					<Text style={styles.sectionTitle}>Weekly Specials</Text>
-					{allProducts.products.length > 0 ? (
-						<FlatList
-							data={allProducts.products.slice(6, 10)} // Show next 4 products as weekly specials
-							renderItem={renderProductItem}
-							keyExtractor={(item) => item._id}
-							numColumns={2}
-							scrollEnabled={false}
-							showsVerticalScrollIndicator={false}
-							columnWrapperStyle={{ justifyContent: "space-between" }}
-							style={styles.productsGrid}
-						/>
-					) : (
-						<EmptyOffersComponent />
-					)}
+					{/* Weekly Specials Section */}
+					<Animated.View entering={FadeInUp.delay(500).springify()}>
+						<View style={styles.sectionHeader}>
+							<View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+								<Ionicons
+									name="calendar"
+									size={20}
+									color={theme.palette.success.main}
+								/>
+								<Text style={styles.sectionTitle}>Weekly Specials</Text>
+							</View>
+							<TouchableOpacity>
+								<Text style={styles.sectionViewAll}>View All</Text>
+							</TouchableOpacity>
+						</View>
+
+						{weeklySpecials.length > 0 ? (
+							<FlatList
+								data={weeklySpecials}
+								renderItem={renderProductItem}
+								keyExtractor={(item) => item._id}
+								numColumns={2}
+								scrollEnabled={false}
+								showsVerticalScrollIndicator={false}
+								columnWrapperStyle={{
+									justifyContent: "space-between",
+									paddingHorizontal: theme.spacing.md,
+								}}
+								contentContainerStyle={{ gap: theme.spacing.md }}
+							/>
+						) : (
+							<EmptyOffersComponent />
+						)}
+					</Animated.View>
+
+					{/* Bottom Padding */}
+					<View style={{ height: theme.spacing.xl }} />
 				</ScrollView>
 			</Container>
 		</SafeArea>

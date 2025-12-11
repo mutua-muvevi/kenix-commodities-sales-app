@@ -33,6 +33,10 @@ const recordPayment = require('../controllers/deliveries/recordPayment');
 const getNextShop = require('../controllers/deliveries/getNextShop');
 const getDeliveryStatus = require('../controllers/deliveries/getDeliveryStatus');
 const getDeliveryHistory = require('../controllers/deliveries/getDeliveryHistory');
+const requestUnlock = require('../controllers/deliveries/requestUnlock');
+const adminUnlockDelivery = require('../controllers/deliveries/adminUnlockDelivery');
+const requestSkip = require('../controllers/deliveries/requestSkip');
+const resolveSkipRequest = require('../controllers/deliveries/resolveSkipRequest');
 
 // Apply authentication and getMe to all routes
 router.use(authenticationMiddleware);
@@ -125,6 +129,30 @@ router.get(
 	'/:deliveryId',
 	validateObjectId('deliveryId'),
 	getDeliveryStatus
+);
+
+/**
+ * @route   POST /api/deliveries/:deliveryId/request-unlock
+ * @desc    Request admin to unlock a delivery (shop unavailable)
+ * @access  Private (rider only)
+ */
+router.post(
+	'/:deliveryId/request-unlock',
+	checkRole(['rider']),
+	validateObjectId('deliveryId'),
+	requestUnlock
+);
+
+/**
+ * @route   POST /api/deliveries/:deliveryId/admin-unlock
+ * @desc    Admin override to unlock a delivery
+ * @access  Private (admin only)
+ */
+router.post(
+	'/:deliveryId/admin-unlock',
+	checkRole(['admin']),
+	validateObjectId('deliveryId'),
+	adminUnlockDelivery
 );
 
 module.exports = router;

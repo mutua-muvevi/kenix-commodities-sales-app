@@ -28,7 +28,7 @@ import {
   Close as CloseIcon,
   MyLocation as MyLocationIcon,
 } from '@mui/icons-material';
-import Map, { Marker, Source, Layer, Popup } from 'react-map-gl';
+import Map, { Marker, Source, Layer, Popup } from 'react-map-gl/mapbox';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { format } from 'date-fns';
 import { getRoutes, Route } from '@/lib/api/routes';

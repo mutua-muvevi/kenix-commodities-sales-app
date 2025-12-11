@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 import * as SecureStore from 'expo-secure-store';
 import apiService from '../services/api';
+import locationService from '../services/location';
+import websocketService from '../services/websocket';
 
 interface User {
   _id: string;
@@ -47,6 +49,23 @@ export const useAuthStore = create<AuthState>((set) => ({
         isAuthenticated: true,
         isLoading: false,
       });
+
+      // Initialize location service with user ID
+      locationService.initialize(response.user._id);
+
+      // Auto-start location tracking if previously enabled
+      const trackingEnabled = await SecureStore.getItemAsync('locationTrackingEnabled');
+      if (trackingEnabled === 'true') {
+        // Check permissions before starting
+        const permissions = await locationService.checkPermissions();
+        if (permissions.foreground) {
+          await locationService.startTracking();
+          console.log('Auto-started location tracking on login');
+        }
+      }
+
+      // Connect to WebSocket
+      websocketService.connect();
     } catch (error: any) {
       set({ isLoading: false });
       throw error;
@@ -55,6 +74,13 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   logout: async () => {
     try {
+      // Stop location tracking
+      await locationService.stopTracking();
+      console.log('Location tracking stopped on logout');
+
+      // Disconnect WebSocket
+      websocketService.disconnect();
+
       await apiService.logout();
       set({
         user: null,
@@ -86,6 +112,23 @@ export const useAuthStore = create<AuthState>((set) => ({
           isAuthenticated: true,
           isLoading: false,
         });
+
+        // Initialize location service with user ID
+        locationService.initialize(user._id);
+
+        // Auto-start location tracking if previously enabled
+        const trackingEnabled = await SecureStore.getItemAsync('locationTrackingEnabled');
+        if (trackingEnabled === 'true') {
+          // Check permissions before starting
+          const permissions = await locationService.checkPermissions();
+          if (permissions.foreground) {
+            await locationService.startTracking();
+            console.log('Auto-started location tracking on app launch');
+          }
+        }
+
+        // Connect to WebSocket
+        websocketService.connect();
       } else {
         set({ isLoading: false });
       }

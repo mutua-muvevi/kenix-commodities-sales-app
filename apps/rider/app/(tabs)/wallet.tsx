@@ -98,7 +98,7 @@ export default function WalletScreen() {
     >
       {/* Balance Card */}
       <View style={styles.balanceCard}>
-        <Text style={styles.balanceLabel}>Current Balance</Text>
+        <Text style={styles.balanceLabel}>Wallet Balance</Text>
         <Text
           style={[
             styles.balanceAmount,
@@ -109,9 +109,50 @@ export default function WalletScreen() {
         </Text>
         <Text style={styles.balanceHint}>
           {(wallet?.balance || 0) < 0
-            ? 'You owe Kenix this amount'
+            ? 'Outstanding amount owed to Kenix'
+            : wallet?.balance === 0
+            ? 'All collections completed'
             : 'Kenix owes you this amount'}
         </Text>
+
+        {/* Collection Progress for Active Routes */}
+        {wallet && wallet.totalLoadedAmount > 0 && (
+          <View style={styles.collectionProgress}>
+            <View style={styles.progressRow}>
+              <View style={styles.progressItem}>
+                <Text style={styles.progressLabel}>Loaded</Text>
+                <Text style={styles.progressValue}>
+                  {formatCurrency(wallet.totalLoadedAmount)}
+                </Text>
+              </View>
+              <View style={styles.progressItem}>
+                <Text style={styles.progressLabel}>Collected</Text>
+                <Text style={[styles.progressValue, styles.collectedValue]}>
+                  {formatCurrency(wallet.totalCollected)}
+                </Text>
+              </View>
+              <View style={styles.progressItem}>
+                <Text style={styles.progressLabel}>Remaining</Text>
+                <Text style={[styles.progressValue, styles.remainingValue]}>
+                  {formatCurrency(wallet.outstandingAmount)}
+                </Text>
+              </View>
+            </View>
+
+            {/* Progress Bar */}
+            <View style={styles.collectionProgressBar}>
+              <View
+                style={[
+                  styles.collectionProgressFill,
+                  { width: `${wallet.collectionPercentage || 0}%` },
+                ]}
+              />
+            </View>
+            <Text style={styles.collectionPercentage}>
+              {Math.round(wallet.collectionPercentage || 0)}% collected
+            </Text>
+          </View>
+        )}
       </View>
 
       {/* Today's Progress */}
@@ -206,12 +247,14 @@ function TransactionItem({ transaction }: { transaction: WalletTransaction }) {
 
   const getIcon = (type: string) => {
     switch (type) {
-      case 'assignment':
-        return 'add-circle';
-      case 'delivery_complete':
-        return 'checkmark-circle';
+      case 'load':
+        return 'cube-outline'; // Goods loaded
+      case 'collection':
+        return 'checkmark-circle'; // Payment collected
       case 'adjustment':
-        return 'create';
+        return 'create-outline'; // Admin adjustment
+      case 'settlement':
+        return 'cash-outline'; // Wallet settled
       default:
         return 'ellipse';
     }
@@ -219,12 +262,14 @@ function TransactionItem({ transaction }: { transaction: WalletTransaction }) {
 
   const getIconColor = (type: string) => {
     switch (type) {
-      case 'assignment':
-        return '#FF9800';
-      case 'delivery_complete':
-        return '#4CAF50';
+      case 'load':
+        return '#FF9800'; // Orange for loading goods
+      case 'collection':
+        return '#4CAF50'; // Green for collections
       case 'adjustment':
-        return '#2196F3';
+        return '#2196F3'; // Blue for adjustments
+      case 'settlement':
+        return '#9C27B0'; // Purple for settlements
       default:
         return '#999999';
     }
@@ -258,7 +303,7 @@ function TransactionItem({ transaction }: { transaction: WalletTransaction }) {
           {formatCurrency(transaction.amount)}
         </Text>
         <Text style={styles.transactionBalance}>
-          Bal: KES {transaction.balanceAfter.toLocaleString()}
+          Bal: KES {transaction.newBalance.toLocaleString()}
         </Text>
       </View>
     </View>
@@ -307,6 +352,56 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#FFFFFF',
     opacity: 0.8,
+  },
+  collectionProgress: {
+    marginTop: 24,
+    paddingTop: 20,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  progressRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  progressItem: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  progressLabel: {
+    fontSize: 12,
+    color: '#FFFFFF',
+    opacity: 0.8,
+    marginBottom: 4,
+  },
+  progressValue: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  collectedValue: {
+    color: '#C8E6C9',
+  },
+  remainingValue: {
+    color: '#FFCDD2',
+  },
+  collectionProgressBar: {
+    height: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 4,
+    overflow: 'hidden',
+    marginBottom: 8,
+  },
+  collectionProgressFill: {
+    height: '100%',
+    backgroundColor: '#C8E6C9',
+    borderRadius: 4,
+  },
+  collectionPercentage: {
+    fontSize: 12,
+    color: '#FFFFFF',
+    textAlign: 'center',
+    fontWeight: '600',
   },
   section: {
     backgroundColor: '#FFFFFF',

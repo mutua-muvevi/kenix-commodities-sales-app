@@ -14,10 +14,11 @@ import Toast from 'react-native-toast-message';
 import { useAuthStore } from '../../store/authStore';
 import { useRouteStore } from '../../store/routeStore';
 import { websocketService } from '../../services/websocket';
-import { api } from '../../services/api';
+import { api, deliveryService } from '../../services/api';
 import ShopCard from '../../components/ShopCard';
 import RouteMap from '../../components/RouteMap';
 import DeliveryFlowModal from '../../components/DeliveryFlowModal';
+import ShopUnavailableModal from '../../components/ShopUnavailableModal';
 import {
   getCurrentLocation,
   isWithinGeofence,
@@ -28,15 +29,23 @@ import {
 
 export default function ActiveRouteScreen() {
   const { user } = useAuthStore();
-  const { activeRoute, currentDelivery, loadActiveRoute, isLoading } = useRouteStore();
+  const {
+    activeRoute,
+    currentDelivery,
+    optimizedDeliveries,
+    loadActiveRoute,
+    optimizeRoute,
+    isLoading,
+  } = useRouteStore();
   const [refreshing, setRefreshing] = useState(false);
   const [showDeliveryFlow, setShowDeliveryFlow] = useState(false);
+  const [showShopUnavailable, setShowShopUnavailable] = useState(false);
   const [currentLocation, setCurrentLocation] = useState<{
     lat: number;
     lng: number;
   } | null>(null);
   const [distanceToShop, setDistanceToShop] = useState<number | null>(null);
-  const [isRequestingUnlock, setIsRequestingUnlock] = useState(false);
+  const [expandedDeliveries, setExpandedDeliveries] = useState(true);
 
   useEffect(() => {
     if (user) {
@@ -45,7 +54,7 @@ export default function ActiveRouteScreen() {
   }, [user]);
 
   useEffect(() => {
-    // Update current location periodically
+    // Update current location periodically and re-optimize route
     const interval = setInterval(async () => {
       const location = await getCurrentLocation();
       if (location) {
@@ -63,11 +72,16 @@ export default function ActiveRouteScreen() {
           );
           setDistanceToShop(distance);
         }
+
+        // Re-optimize route based on new location (every 30 seconds)
+        if (activeRoute && activeRoute.deliveries.length > 1) {
+          optimizeRoute(location);
+        }
       }
     }, 5000);
 
     return () => clearInterval(interval);
-  }, [currentDelivery]);
+  }, [currentDelivery, activeRoute]);
 
   const onRefresh = async () => {
     if (user) {
@@ -119,49 +133,68 @@ export default function ActiveRouteScreen() {
 
   const handleShopUnavailable = () => {
     if (!currentDelivery) return;
+    setShowShopUnavailable(true);
+  };
 
+  const handleSkipRequest = async (data: {
+    reason: string;
+    notes: string;
+    photo?: string;
+  }) => {
+    if (!currentDelivery || !user) {
+      throw new Error('Missing delivery or user information');
+    }
+
+    try {
+      // Try API call first
+      const response = await deliveryService.requestSkip({
+        deliveryId: currentDelivery._id,
+        shopId: currentDelivery.shopId._id,
+        reason: data.reason,
+        notes: data.notes,
+        photo: data.photo,
+        location: currentLocation || undefined,
+      });
+
+      Toast.show({
+        type: 'success',
+        text1: 'Request Sent',
+        text2: 'Admin has been notified. Please wait for approval.',
+      });
+
+      setShowShopUnavailable(false);
+    } catch (error) {
+      console.error('Skip request API error:', error);
+
+      // Fallback to WebSocket
+      try {
+        websocketService.requestShopSkip({
+          deliveryId: currentDelivery._id,
+          shopId: currentDelivery.shopId._id,
+          reason: data.reason,
+          notes: data.notes,
+          photo: data.photo,
+          location: currentLocation || undefined,
+        });
+
+        Toast.show({
+          type: 'info',
+          text1: 'Request Sent via WebSocket',
+          text2: 'Waiting for admin approval.',
+        });
+
+        setShowShopUnavailable(false);
+      } catch (wsError) {
+        throw new Error('Failed to send skip request. Please try again.');
+      }
+    }
+  };
+
+  const handleLockedDeliveryPress = () => {
     Alert.alert(
-      'Shop Unavailable',
-      'Is the shop closed or the owner unavailable? This will notify the admin to unlock the next shop for you.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Report & Request Unlock',
-          style: 'destructive',
-          onPress: async () => {
-            setIsRequestingUnlock(true);
-            try {
-              // Try API call first
-              await api.post(`/rider/request-unlock`, {
-                deliveryId: currentDelivery._id,
-                reason: 'shop_unavailable',
-                shopId: currentDelivery.shopId._id,
-                location: currentLocation,
-              });
-
-              Toast.show({
-                type: 'success',
-                text1: 'Request Sent',
-                text2: 'Admin has been notified. Please wait for unlock.',
-              });
-            } catch (error) {
-              // Fallback to WebSocket
-              websocketService.requestShopUnlock(
-                currentDelivery._id,
-                'shop_unavailable'
-              );
-
-              Toast.show({
-                type: 'info',
-                text1: 'Request Sent',
-                text2: 'Waiting for admin to unlock the next shop.',
-              });
-            } finally {
-              setIsRequestingUnlock(false);
-            }
-          },
-        },
-      ]
+      'Delivery Locked',
+      'You must complete deliveries in sequence. Please complete the current delivery before proceeding to the next one.',
+      [{ text: 'OK' }]
     );
   };
 
@@ -225,6 +258,11 @@ export default function ActiveRouteScreen() {
     currentDelivery.status !== 'arrived' &&
     currentDelivery.status !== 'completed';
 
+  // Sort deliveries by sequence
+  const sortedDeliveries = [...activeRoute.deliveries].sort(
+    (a, b) => a.deliverySequence - b.deliverySequence
+  );
+
   return (
     <>
       <ScrollView
@@ -251,6 +289,17 @@ export default function ActiveRouteScreen() {
           </View>
         </View>
 
+        {/* Sequential Enforcement Notice */}
+        <View style={styles.noticeCard}>
+          <Ionicons name="information-circle" size={24} color="#0066CC" />
+          <View style={styles.noticeContent}>
+            <Text style={styles.noticeTitle}>Sequential Delivery Required</Text>
+            <Text style={styles.noticeText}>
+              Deliveries must be completed in order. You cannot skip ahead without admin approval.
+            </Text>
+          </View>
+        </View>
+
         {/* Current Shop Card */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Current Stop</Text>
@@ -258,19 +307,19 @@ export default function ActiveRouteScreen() {
             delivery={currentDelivery}
             currentSequence={currentSequence}
             totalDeliveries={totalDeliveries}
+            isLocked={false}
           />
         </View>
 
-        {/* Map */}
+        {/* Map - Show full route with all stops */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Route Map</Text>
-          <RouteMap shop={currentDelivery.shopId} style={styles.map} />
-          {distanceToShop !== null && (
-            <View style={styles.distanceBadge}>
-              <Ionicons name="navigate" size={16} color="#FFFFFF" />
-              <Text style={styles.distanceText}>{formatDistance(distanceToShop)}</Text>
-            </View>
-          )}
+          <RouteMap
+            deliveries={optimizedDeliveries.length > 0 ? optimizedDeliveries : activeRoute.deliveries}
+            currentDeliveryId={currentDelivery._id}
+            style={styles.map}
+            showAllStops={true}
+          />
         </View>
 
         {/* Action Buttons */}
@@ -308,28 +357,46 @@ export default function ActiveRouteScreen() {
             <TouchableOpacity
               style={styles.shopUnavailableButton}
               onPress={handleShopUnavailable}
-              disabled={isRequestingUnlock}
             >
-              {isRequestingUnlock ? (
-                <ActivityIndicator size="small" color="#FF9800" />
-              ) : (
-                <Ionicons name="close-circle" size={20} color="#FF9800" />
-              )}
-              <Text style={styles.shopUnavailableText}>
-                {isRequestingUnlock ? 'Requesting...' : 'Shop Unavailable'}
-              </Text>
+              <Ionicons name="close-circle" size={20} color="#FF9800" />
+              <Text style={styles.shopUnavailableText}>Shop Unavailable</Text>
             </TouchableOpacity>
           )}
         </View>
 
-        {/* Remaining Stops */}
+        {/* Upcoming Deliveries */}
         {remainingDeliveries > 0 && (
-          <View style={styles.remainingSection}>
-            <Ionicons name="information-circle" size={20} color="#666666" />
-            <Text style={styles.remainingText}>
-              {remainingDeliveries} more {remainingDeliveries === 1 ? 'stop' : 'stops'}{' '}
-              after this
-            </Text>
+          <View style={styles.section}>
+            <TouchableOpacity
+              style={styles.upcomingHeader}
+              onPress={() => setExpandedDeliveries(!expandedDeliveries)}
+            >
+              <Text style={styles.sectionTitle}>
+                Upcoming Stops ({remainingDeliveries})
+              </Text>
+              <Ionicons
+                name={expandedDeliveries ? 'chevron-up' : 'chevron-down'}
+                size={24}
+                color="#1A1A1A"
+              />
+            </TouchableOpacity>
+
+            {expandedDeliveries && (
+              <View style={styles.upcomingDeliveries}>
+                {sortedDeliveries
+                  .filter((d) => d.deliverySequence > currentSequence)
+                  .map((delivery) => (
+                    <ShopCard
+                      key={delivery._id}
+                      delivery={delivery}
+                      currentSequence={delivery.deliverySequence}
+                      totalDeliveries={totalDeliveries}
+                      isLocked={!delivery.canProceed}
+                      onPressLocked={handleLockedDeliveryPress}
+                    />
+                  ))}
+              </View>
+            )}
           </View>
         )}
 
@@ -348,6 +415,17 @@ export default function ActiveRouteScreen() {
               loadActiveRoute(user._id);
             }
           }}
+        />
+      )}
+
+      {/* Shop Unavailable Modal */}
+      {showShopUnavailable && currentDelivery && (
+        <ShopUnavailableModal
+          visible={showShopUnavailable}
+          shopName={currentDelivery.shopId.shopName}
+          deliveryId={currentDelivery._id}
+          onClose={() => setShowShopUnavailable(false)}
+          onSubmit={handleSkipRequest}
         />
       )}
     </>
@@ -421,6 +499,32 @@ const styles = StyleSheet.create({
     height: '100%',
     backgroundColor: '#4CAF50',
   },
+  noticeCard: {
+    backgroundColor: '#E3F2FD',
+    padding: 16,
+    marginHorizontal: 16,
+    marginBottom: 16,
+    borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    borderLeftWidth: 4,
+    borderLeftColor: '#0066CC',
+  },
+  noticeContent: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  noticeTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#0066CC',
+    marginBottom: 4,
+  },
+  noticeText: {
+    fontSize: 14,
+    color: '#1565C0',
+    lineHeight: 20,
+  },
   section: {
     padding: 16,
   },
@@ -430,25 +534,17 @@ const styles = StyleSheet.create({
     color: '#1A1A1A',
     marginBottom: 12,
   },
-  map: {
-    height: 300,
-  },
-  distanceBadge: {
-    position: 'absolute',
-    top: 60,
-    right: 28,
-    backgroundColor: '#0066CC',
+  upcomingHeader: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 20,
+    marginBottom: 12,
   },
-  distanceText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '600',
-    marginLeft: 6,
+  upcomingDeliveries: {
+    gap: 0,
+  },
+  map: {
+    height: 400,
   },
   actions: {
     padding: 16,
@@ -503,17 +599,6 @@ const styles = StyleSheet.create({
     color: '#FF9800',
     fontSize: 15,
     fontWeight: '600',
-  },
-  remainingSection: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 16,
-    gap: 8,
-  },
-  remainingText: {
-    fontSize: 15,
-    color: '#666666',
   },
   bottomSpacer: {
     height: 40,

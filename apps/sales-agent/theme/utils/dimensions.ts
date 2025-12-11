@@ -176,12 +176,15 @@ export const pixelRatio = PixelRatio.get();
 
 /**
  * Check if device has notch
+ * On iOS, devices with notch have height >= 812 and are not iPads
+ * We check for tablet using screen dimensions
  */
 export const hasNotch = (): boolean => {
+  const isTabletBySize = Math.min(screenWidth, screenHeight) >= 768;
   return (
     isIOS &&
     (screenHeight >= 812 || screenWidth >= 812) &&
-    !Platform.isPad
+    !isTabletBySize
   );
 };
 

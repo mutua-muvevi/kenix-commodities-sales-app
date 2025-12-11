@@ -111,6 +111,23 @@ class WebSocketService {
       console.log('Admin unlocked shop:', data);
       this.notifyListeners('admin:shop-unlocked', data);
     });
+
+    // Skip request acknowledgment
+    this.socket.on('rider:skip-request-received', (data: any) => {
+      console.log('Skip request received by admin:', data);
+      this.notifyListeners('rider:skip-request-received', data);
+    });
+
+    // Skip approval/rejection from admin
+    this.socket.on('admin:skip-approved', (data: any) => {
+      console.log('Skip approved by admin:', data);
+      this.notifyListeners('admin:skip-approved', data);
+    });
+
+    this.socket.on('admin:skip-rejected', (data: any) => {
+      console.log('Skip rejected by admin:', data);
+      this.notifyListeners('admin:skip-rejected', data);
+    });
   }
 
   disconnect(): void {
@@ -166,6 +183,23 @@ class WebSocketService {
     if (this.socket?.connected) {
       this.socket.emit('rider:request-unlock', { deliveryId, reason });
       console.log('Shop unlock requested:', { deliveryId, reason });
+    }
+  }
+
+  requestShopSkip(skipRequest: {
+    deliveryId: string;
+    shopId: string;
+    reason: string;
+    notes: string;
+    photo?: string;
+    location?: { lat: number; lng: number };
+  }): void {
+    if (this.socket?.connected) {
+      this.socket.emit('rider:request-skip', {
+        ...skipRequest,
+        timestamp: new Date().toISOString(),
+      });
+      console.log('Shop skip requested:', skipRequest);
     }
   }
 

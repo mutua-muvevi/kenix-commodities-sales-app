@@ -1,8 +1,10 @@
 import { useEffect } from 'react';
 import { Slot, useRouter, useSegments } from 'expo-router';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import Toast from 'react-native-toast-message';
 import { useAuthStore } from '../store/authStore';
 import websocketService from '../services/websocket';
+import { toastConfig } from '../components/ToastConfig';
 
 export default function RootLayout() {
   const segments = useSegments();
@@ -35,6 +37,7 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <Slot />
+      <Toast config={toastConfig} />
     </GestureHandlerRootView>
   );
 }

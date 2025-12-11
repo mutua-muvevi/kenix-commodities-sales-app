@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -8,15 +8,31 @@ import {
   TextInput,
   Alert,
   ActivityIndicator,
+  Switch,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '../../store/authStore';
+import { useLocationStore } from '../../store/slices/location/location-store';
 import apiService from '../../services/api';
+import locationService from '../../services/location';
 
 export default function ProfileScreen() {
   const router = useRouter();
   const { user, logout } = useAuthStore();
+  const {
+    isTrackingEnabled,
+    isForegroundTracking,
+    isBackgroundTracking,
+    permissions,
+    currentLocation,
+    lastUpdateTimestamp,
+    setTrackingEnabled,
+    requestPermissions,
+    checkPermissions,
+    getTrackingStatus,
+  } = useLocationStore();
+
   const [isEditing, setIsEditing] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -32,6 +48,21 @@ export default function ProfileScreen() {
     newPassword: '',
     confirmPassword: '',
   });
+
+  // Load location tracking status on mount
+  useEffect(() => {
+    const loadLocationStatus = async () => {
+      await checkPermissions();
+      await getTrackingStatus();
+
+      // Initialize location service with user ID
+      if (user?._id) {
+        locationService.initialize(user._id);
+      }
+    };
+
+    loadLocationStatus();
+  }, [user?._id]);
 
   const handleSaveProfile = async () => {
     if (!formData.name.trim()) {
@@ -116,6 +147,72 @@ export default function ProfileScreen() {
         },
       },
     ]);
+  };
+
+  const handleToggleTracking = async (enabled: boolean) => {
+    if (enabled) {
+      // Check if we have permissions
+      if (!permissions.foreground || !permissions.background) {
+        Alert.alert(
+          'Location Permissions Required',
+          'This app needs location permissions (always) to track your position for route optimization. Please grant permissions in the next prompt.',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            {
+              text: 'Grant Permissions',
+              onPress: async () => {
+                const granted = await requestPermissions();
+
+                if (granted.foreground) {
+                  setTrackingEnabled(true);
+                  Alert.alert(
+                    'GPS Tracking Enabled',
+                    granted.background
+                      ? 'Location tracking is now active in foreground and background.'
+                      : 'Location tracking is active in foreground only. Background permission was not granted.'
+                  );
+                } else {
+                  Alert.alert(
+                    'Permission Denied',
+                    'Location permissions are required for GPS tracking. Please enable them in your device settings.'
+                  );
+                }
+              },
+            },
+          ]
+        );
+      } else {
+        setTrackingEnabled(true);
+        Alert.alert('GPS Tracking Enabled', 'Your location is now being tracked.');
+      }
+    } else {
+      Alert.alert(
+        'Disable GPS Tracking',
+        'Are you sure you want to stop location tracking? This may affect route optimization.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Disable',
+            style: 'destructive',
+            onPress: () => {
+              setTrackingEnabled(false);
+            },
+          },
+        ]
+      );
+    }
+  };
+
+  const formatLastUpdate = (timestamp: number | null) => {
+    if (!timestamp) return 'Never';
+
+    const now = Date.now();
+    const diff = now - timestamp;
+
+    if (diff < 60000) return 'Just now';
+    if (diff < 3600000) return `${Math.floor(diff / 60000)} minutes ago`;
+    if (diff < 86400000) return `${Math.floor(diff / 3600000)} hours ago`;
+    return new Date(timestamp).toLocaleDateString();
   };
 
   return (
@@ -228,6 +325,114 @@ export default function ProfileScreen() {
                   <Text style={styles.saveButtonText}>Save Changes</Text>
                 )}
               </TouchableOpacity>
+            </View>
+          )}
+        </View>
+      </View>
+
+      {/* GPS Tracking */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>GPS Tracking</Text>
+
+        <View style={styles.card}>
+          <View style={styles.trackingHeader}>
+            <View style={styles.menuItemLeft}>
+              <Ionicons
+                name={isTrackingEnabled ? 'location' : 'location-outline'}
+                size={24}
+                color={isTrackingEnabled ? '#22c55e' : '#6b7280'}
+              />
+              <View>
+                <Text style={styles.trackingTitle}>Location Tracking</Text>
+                <Text style={styles.trackingSubtitle}>
+                  {isTrackingEnabled
+                    ? 'Tracking active for route optimization'
+                    : 'Enable to track your location'}
+                </Text>
+              </View>
+            </View>
+            <Switch
+              value={isTrackingEnabled}
+              onValueChange={handleToggleTracking}
+              trackColor={{ false: '#d1d5db', true: '#86efac' }}
+              thumbColor={isTrackingEnabled ? '#22c55e' : '#f3f4f6'}
+            />
+          </View>
+
+          {isTrackingEnabled && (
+            <View style={styles.trackingDetails}>
+              <View style={styles.trackingDetailRow}>
+                <Ionicons name="radio-button-on" size={16} color="#22c55e" />
+                <Text style={styles.trackingDetailLabel}>Foreground:</Text>
+                <Text
+                  style={[
+                    styles.trackingDetailValue,
+                    isForegroundTracking && styles.trackingDetailValueActive,
+                  ]}
+                >
+                  {isForegroundTracking ? 'Active' : 'Inactive'}
+                </Text>
+              </View>
+
+              <View style={styles.trackingDetailRow}>
+                <Ionicons name="radio-button-on" size={16} color="#22c55e" />
+                <Text style={styles.trackingDetailLabel}>Background:</Text>
+                <Text
+                  style={[
+                    styles.trackingDetailValue,
+                    isBackgroundTracking && styles.trackingDetailValueActive,
+                  ]}
+                >
+                  {isBackgroundTracking ? 'Active' : 'Inactive'}
+                </Text>
+              </View>
+
+              <View style={styles.trackingDetailRow}>
+                <Ionicons name="time-outline" size={16} color="#6b7280" />
+                <Text style={styles.trackingDetailLabel}>Last Update:</Text>
+                <Text style={styles.trackingDetailValue}>
+                  {formatLastUpdate(lastUpdateTimestamp)}
+                </Text>
+              </View>
+
+              {currentLocation && (
+                <View style={styles.trackingDetailRow}>
+                  <Ionicons name="location-outline" size={16} color="#6b7280" />
+                  <Text style={styles.trackingDetailLabel}>Position:</Text>
+                  <Text style={styles.trackingDetailValue}>
+                    {currentLocation.latitude.toFixed(6)},{' '}
+                    {currentLocation.longitude.toFixed(6)}
+                  </Text>
+                </View>
+              )}
+
+              <View style={styles.permissionStatus}>
+                <Text style={styles.permissionStatusTitle}>Permissions:</Text>
+                <View style={styles.permissionRow}>
+                  <Ionicons
+                    name={
+                      permissions.foreground
+                        ? 'checkmark-circle'
+                        : 'close-circle'
+                    }
+                    size={16}
+                    color={permissions.foreground ? '#22c55e' : '#ef4444'}
+                  />
+                  <Text style={styles.permissionText}>Foreground Location</Text>
+                </View>
+                <View style={styles.permissionRow}>
+                  <Ionicons
+                    name={
+                      permissions.background
+                        ? 'checkmark-circle'
+                        : 'close-circle'
+                    }
+                    size={16}
+                    color={permissions.background ? '#22c55e' : '#ef4444'}
+                  />
+                  <Text style={styles.permissionText}>Background Location</Text>
+                </View>
+              </View>
             </View>
           )}
         </View>
@@ -530,5 +735,69 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     color: '#fff',
+  },
+  trackingHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingBottom: 12,
+  },
+  trackingTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1f2937',
+  },
+  trackingSubtitle: {
+    fontSize: 12,
+    color: '#6b7280',
+    marginTop: 2,
+  },
+  trackingDetails: {
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#e5e7eb',
+  },
+  trackingDetailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+    gap: 8,
+  },
+  trackingDetailLabel: {
+    fontSize: 14,
+    color: '#6b7280',
+    marginRight: 8,
+  },
+  trackingDetailValue: {
+    fontSize: 14,
+    color: '#9ca3af',
+    flex: 1,
+  },
+  trackingDetailValueActive: {
+    color: '#22c55e',
+    fontWeight: '600',
+  },
+  permissionStatus: {
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#e5e7eb',
+  },
+  permissionStatusTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1f2937',
+    marginBottom: 8,
+  },
+  permissionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 6,
+  },
+  permissionText: {
+    fontSize: 14,
+    color: '#6b7280',
   },
 });

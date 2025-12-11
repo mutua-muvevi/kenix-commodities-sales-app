@@ -765,7 +765,7 @@ export const mockShops: Shop[] = [
       coordinates: [36.8500, -1.3200],
     },
     address: {
-      street: 'Lang'ata Road',
+      street: 'Langata Road',
       area: 'Karen',
       city: 'Nairobi',
       county: 'Nairobi',

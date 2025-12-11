@@ -10,13 +10,16 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
+  Switch,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import LocationPicker from '../../components/LocationPicker';
 import ShopPhotoCapture from '../../components/ShopPhotoCapture';
+import CredentialsModal from '../../components/shop/CredentialsModal';
 import { useAuthStore } from '../../store/authStore';
 import { useShopStore } from '../../store/shopStore';
+import shopAccountService from '../../services/shop-account';
 
 const DAYS_OF_WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
@@ -55,6 +58,19 @@ export default function RegisterShopScreen() {
     specialNotes: '',
   });
 
+  // Step 5: Account Creation
+  const [createAccount, setCreateAccount] = useState(false);
+  const [accountEmail, setAccountEmail] = useState('');
+  const [accountPassword, setAccountPassword] = useState('');
+  const [sendViaSMS, setSendViaSMS] = useState(true);
+  const [showCredentials, setShowCredentials] = useState(false);
+  const [createdCredentials, setCreatedCredentials] = useState<{
+    email: string;
+    password: string;
+    shopName: string;
+    phoneNumber: string;
+  } | null>(null);
+
   const updateFormData = (key: string, value: any) => {
     setFormData((prev) => ({ ...prev, [key]: value }));
   };
@@ -73,6 +89,11 @@ export default function RegisterShopScreen() {
       : [...currentDays, day];
 
     updateNestedData('operatingHours', 'days', newDays);
+  };
+
+  const generatePassword = () => {
+    const password = shopAccountService.generateTempPassword();
+    setAccountPassword(password);
   };
 
   const validateStep = () => {
@@ -118,6 +139,28 @@ export default function RegisterShopScreen() {
         }
         return true;
 
+      case 5:
+        if (createAccount) {
+          if (!accountEmail.trim()) {
+            Alert.alert('Required', 'Please enter email for shop owner account');
+            return false;
+          }
+          if (!shopAccountService.validateEmail(accountEmail)) {
+            Alert.alert('Invalid Email', 'Please enter a valid email address');
+            return false;
+          }
+          if (!accountPassword.trim()) {
+            Alert.alert('Required', 'Please generate or enter a password');
+            return false;
+          }
+          const passwordValidation = shopAccountService.validatePassword(accountPassword);
+          if (!passwordValidation.valid) {
+            Alert.alert('Invalid Password', passwordValidation.message || 'Password is too weak');
+            return false;
+          }
+        }
+        return true;
+
       default:
         return true;
     }
@@ -139,7 +182,7 @@ export default function RegisterShopScreen() {
     try {
       const shopData = {
         name: formData.ownerName.trim(),
-        email: formData.email.trim() || undefined,
+        email: createAccount ? accountEmail.trim() : (formData.email.trim() || undefined),
         phoneNumber: formData.phoneNumber.trim(),
         role: 'shop',
         shopName: formData.shopName.trim(),
@@ -160,18 +203,54 @@ export default function RegisterShopScreen() {
         createdBy: user?._id,
       };
 
-      await registerShop(shopData);
+      const newShop = await registerShop(shopData);
 
-      Alert.alert(
-        'Success!',
-        'Shop registered successfully and is pending admin approval.',
-        [
-          {
-            text: 'View My Shops',
-            onPress: () => router.replace('/(tabs)/shops'),
-          },
-        ]
-      );
+      // Create account if requested
+      if (createAccount && accountEmail && accountPassword) {
+        try {
+          const accountResult = await shopAccountService.createShopAccount({
+            shopId: newShop._id,
+            email: accountEmail.trim(),
+            password: accountPassword,
+            phoneNumber: formData.phoneNumber.trim(),
+            sendCredentialsBySMS: sendViaSMS,
+          });
+
+          // Show credentials modal
+          setCreatedCredentials({
+            email: accountResult.credentials.email,
+            password: accountResult.credentials.password,
+            shopName: formData.shopName,
+            phoneNumber: formData.phoneNumber,
+          });
+          setShowCredentials(true);
+        } catch (accountError: any) {
+          // Shop was created but account creation failed
+          Alert.alert(
+            'Account Creation Failed',
+            `Shop registered successfully, but account creation failed: ${accountError.message}\n\nYou can create the account later from the shop details screen.`,
+            [
+              {
+                text: 'OK',
+                onPress: () => router.replace('/(tabs)/shops'),
+              },
+            ]
+          );
+          return;
+        }
+      } else {
+        // No account creation, just show success
+        Alert.alert(
+          'Success!',
+          'Shop registered successfully and is pending admin approval.',
+          [
+            {
+              text: 'View My Shops',
+              onPress: () => router.replace('/(tabs)/shops'),
+            },
+          ]
+        );
+      }
     } catch (error: any) {
       Alert.alert(
         'Registration Failed',
@@ -182,7 +261,7 @@ export default function RegisterShopScreen() {
 
   const renderProgressBar = () => (
     <View style={styles.progressContainer}>
-      {[1, 2, 3, 4].map((s) => (
+      {[1, 2, 3, 4, 5].map((s) => (
         <View key={s} style={styles.progressStepContainer}>
           <View style={[styles.progressStep, s <= step && styles.progressStepActive]}>
             {s < step ? (
@@ -193,7 +272,7 @@ export default function RegisterShopScreen() {
               </Text>
             )}
           </View>
-          {s < 4 && <View style={[styles.progressLine, s < step && styles.progressLineActive]} />}
+          {s < 5 && <View style={[styles.progressLine, s < step && styles.progressLineActive]} />}
         </View>
       ))}
     </View>
@@ -409,6 +488,99 @@ export default function RegisterShopScreen() {
     </View>
   );
 
+  const renderStep5 = () => (
+    <View style={styles.stepContainer}>
+      <Text style={styles.stepTitle}>Shop Owner Account</Text>
+      <Text style={styles.stepSubtitle}>Create login credentials for the shop owner</Text>
+
+      <View style={styles.accountToggleCard}>
+        <View style={styles.accountToggleHeader}>
+          <Ionicons name="person-circle-outline" size={32} color="#22c55e" />
+          <View style={styles.accountToggleContent}>
+            <Text style={styles.accountToggleTitle}>Create Login Account</Text>
+            <Text style={styles.accountToggleSubtitle}>
+              Allow shop owner to access the Kenix Shop app
+            </Text>
+          </View>
+          <Switch
+            value={createAccount}
+            onValueChange={setCreateAccount}
+            trackColor={{ false: '#d1d5db', true: '#86efac' }}
+            thumbColor={createAccount ? '#22c55e' : '#f3f4f6'}
+          />
+        </View>
+      </View>
+
+      {createAccount && (
+        <>
+          <View style={styles.inputContainer}>
+            <Text style={styles.label}>
+              Email <Text style={styles.required}>*</Text>
+            </Text>
+            <TextInput
+              style={styles.input}
+              placeholder="shopowner@example.com"
+              value={accountEmail}
+              onChangeText={setAccountEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+            <Text style={styles.hint}>This will be used for shop owner login</Text>
+          </View>
+
+          <View style={styles.inputContainer}>
+            <Text style={styles.label}>
+              Temporary Password <Text style={styles.required}>*</Text>
+            </Text>
+            <View style={styles.passwordContainer}>
+              <TextInput
+                style={[styles.input, styles.passwordInput]}
+                placeholder="Enter or generate password"
+                value={accountPassword}
+                onChangeText={setAccountPassword}
+                secureTextEntry={false}
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+              <TouchableOpacity style={styles.generateButton} onPress={generatePassword}>
+                <Ionicons name="refresh" size={20} color="#fff" />
+                <Text style={styles.generateButtonText}>Generate</Text>
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.hint}>
+              Minimum 8 characters. Shop owner can change this after first login.
+            </Text>
+          </View>
+
+          <View style={styles.smsToggleCard}>
+            <Ionicons name="chatbubble-ellipses-outline" size={24} color="#3b82f6" />
+            <View style={styles.smsToggleContent}>
+              <Text style={styles.smsToggleTitle}>Send credentials via SMS</Text>
+              <Text style={styles.smsToggleSubtitle}>
+                Open SMS app with pre-filled credentials
+              </Text>
+            </View>
+            <Switch
+              value={sendViaSMS}
+              onValueChange={setSendViaSMS}
+              trackColor={{ false: '#d1d5db', true: '#93c5fd' }}
+              thumbColor={sendViaSMS ? '#3b82f6' : '#f3f4f6'}
+            />
+          </View>
+
+          <View style={styles.infoCard}>
+            <Ionicons name="information-circle" size={20} color="#3b82f6" />
+            <Text style={styles.infoText}>
+              After registration, you'll be able to share the credentials via WhatsApp, SMS, or
+              copy them to clipboard.
+            </Text>
+          </View>
+        </>
+      )}
+    </View>
+  );
+
   return (
     <KeyboardAvoidingView
       style={styles.container}
@@ -429,9 +601,22 @@ export default function RegisterShopScreen() {
         {step === 2 && renderStep2()}
         {step === 3 && renderStep3()}
         {step === 4 && renderStep4()}
+        {step === 5 && renderStep5()}
 
         <View style={{ height: 100 }} />
       </ScrollView>
+
+      {/* Credentials Modal */}
+      {createdCredentials && (
+        <CredentialsModal
+          visible={showCredentials}
+          onClose={() => {
+            setShowCredentials(false);
+            router.replace('/(tabs)/shops');
+          }}
+          credentials={createdCredentials}
+        />
+      )}
 
       <View style={styles.footer}>
         {step > 1 && (
@@ -440,7 +625,7 @@ export default function RegisterShopScreen() {
           </TouchableOpacity>
         )}
 
-        {step < 4 ? (
+        {step < 5 ? (
           <TouchableOpacity style={styles.nextButton} onPress={handleNext}>
             <Text style={styles.nextButtonText}>Next</Text>
             <Ionicons name="arrow-forward" size={20} color="#fff" />
@@ -455,7 +640,7 @@ export default function RegisterShopScreen() {
               <ActivityIndicator color="#fff" />
             ) : (
               <>
-                <Text style={styles.submitButtonText}>Submit for Approval</Text>
+                <Text style={styles.submitButtonText}>Register Shop</Text>
                 <Ionicons name="checkmark-circle" size={20} color="#fff" />
               </>
             )}
@@ -663,5 +848,88 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     color: '#fff',
+  },
+  accountToggleCard: {
+    backgroundColor: '#f9fafb',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+  },
+  accountToggleHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  accountToggleContent: {
+    flex: 1,
+  },
+  accountToggleTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1f2937',
+    marginBottom: 4,
+  },
+  accountToggleSubtitle: {
+    fontSize: 13,
+    color: '#6b7280',
+  },
+  passwordContainer: {
+    flexDirection: 'row',
+    gap: 12,
+    alignItems: 'flex-start',
+  },
+  passwordInput: {
+    flex: 1,
+  },
+  generateButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#3b82f6',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 8,
+    gap: 6,
+  },
+  generateButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  smsToggleCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#eff6ff',
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 20,
+    gap: 12,
+  },
+  smsToggleContent: {
+    flex: 1,
+  },
+  smsToggleTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1f2937',
+    marginBottom: 2,
+  },
+  smsToggleSubtitle: {
+    fontSize: 12,
+    color: '#6b7280',
+  },
+  infoCard: {
+    flexDirection: 'row',
+    backgroundColor: '#dbeafe',
+    padding: 16,
+    borderRadius: 12,
+    gap: 12,
+  },
+  infoText: {
+    flex: 1,
+    fontSize: 13,
+    color: '#1e3a8a',
+    lineHeight: 18,
   },
 });

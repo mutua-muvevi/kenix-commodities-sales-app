@@ -9,6 +9,7 @@ import type {
   Wallet,
   Stats,
   PaymentConfirmation,
+  SkipRequest,
 } from '../types';
 
 // Get API URL from environment or use default
@@ -184,6 +185,28 @@ export const deliveryService = {
     return response.data.delivery;
   },
 
+  requestSkip: async (
+    skipRequest: Omit<SkipRequest, 'riderId' | 'timestamp'>
+  ): Promise<{
+    success: boolean;
+    message: string;
+    requestId: string;
+  }> => {
+    const response = await api.post<{
+      success: boolean;
+      message: string;
+      data: { requestId: string };
+    }>(`/deliveries/${skipRequest.deliveryId}/request-skip`, {
+      ...skipRequest,
+      timestamp: new Date().toISOString(),
+    });
+    return {
+      success: response.data.success,
+      message: response.data.message,
+      requestId: response.data.data.requestId,
+    };
+  },
+
   getHistory: async (
     riderId: string,
     params: {
@@ -222,7 +245,7 @@ export const locationService = {
 export const walletService = {
   getWallet: async (riderId: string): Promise<Wallet> => {
     const response = await api.get<{ success: boolean; wallet: Wallet }>(
-      `/wallet/rider/${riderId}`
+      `/wallet/${riderId}`
     );
     return response.data.wallet;
   },
@@ -234,7 +257,7 @@ export const walletService = {
     const response = await api.get<{
       success: boolean;
       transactions: Wallet['transactions'];
-    }>(`/wallet/rider/${riderId}/transactions`, {
+    }>(`/wallet/${riderId}/transactions`, {
       params: { limit },
     });
     return response.data.transactions;

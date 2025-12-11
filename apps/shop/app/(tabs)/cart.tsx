@@ -220,6 +220,42 @@ const CartScreen = () => {
 		},
 	});
 
+	// Cart Footer Component with Summary
+	const CartFooter = () => (
+		<Animated.View entering={FadeInUp.delay(200).springify()}>
+			<Card style={styles.summary}>
+				<View style={styles.summaryRow}>
+					<Text style={styles.summaryLabel}>Items ({totalItems})</Text>
+					<Text style={styles.summaryValue}>KES {totalPrice.toFixed(2)}</Text>
+				</View>
+				<View style={styles.summaryRow}>
+					<Text style={styles.summaryLabel}>Delivery</Text>
+					<Text style={styles.summaryValue}>Free</Text>
+				</View>
+				<View style={styles.totalRow}>
+					<Text style={styles.totalLabel}>Total</Text>
+					<Text style={styles.totalValue}>KES {totalPrice.toFixed(2)}</Text>
+				</View>
+
+				<View style={styles.actions}>
+					<Button
+						title="Proceed to Checkout"
+						variant="gradient"
+						fullWidth
+						onPress={() => router.push("/checkout")}
+					/>
+					<Button
+						title="Clear Cart"
+						variant="outlined"
+						fullWidth
+						onPress={clearCart}
+						style={styles.clearButton}
+					/>
+				</View>
+			</Card>
+		</Animated.View>
+	);
+
 	if (isEmpty) {
 		return (
 			<SafeArea>
@@ -236,51 +272,22 @@ const CartScreen = () => {
 	return (
 		<SafeArea>
 			<Container>
-				<View style={styles.header}>
-					<Text style={styles.title}>Shopping Cart</Text>
-					<Text style={styles.subtitle}>
-						{totalItems} item{totalItems !== 1 ? "s" : ""} in your cart
-					</Text>
-				</View>
-
 				<FlatList
 					data={items}
 					renderItem={renderCartItem}
 					keyExtractor={(item) => item.productId}
 					showsVerticalScrollIndicator={false}
-					contentContainerStyle={{ paddingBottom: theme.spacing.xxl }}
+					contentContainerStyle={{ paddingBottom: theme.spacing.lg }}
+					ListHeaderComponent={
+						<View style={styles.header}>
+							<Text style={styles.title}>Shopping Cart</Text>
+							<Text style={styles.subtitle}>
+								{totalItems} item{totalItems !== 1 ? "s" : ""} in your cart
+							</Text>
+						</View>
+					}
+					ListFooterComponent={CartFooter}
 				/>
-
-				<Card style={styles.summary}>
-					<View style={styles.summaryRow}>
-						<Text style={styles.summaryLabel}>Items ({totalItems})</Text>
-						<Text style={styles.summaryValue}>${totalPrice.toFixed(2)}</Text>
-					</View>
-					<View style={styles.summaryRow}>
-						<Text style={styles.summaryLabel}>Delivery</Text>
-						<Text style={styles.summaryValue}>Free</Text>
-					</View>
-					<View style={styles.totalRow}>
-						<Text style={styles.totalLabel}>Total</Text>
-						<Text style={styles.totalValue}>${totalPrice.toFixed(2)}</Text>
-					</View>
-
-					<View style={styles.actions}>
-						<Button
-							title="Proceed to Checkout"
-							variant="gradient"
-							fullWidth
-							onPress={() => router.push("/checkout")}
-						/>
-						<Button
-							title="Clear Cart"
-							variant="outlined"
-							fullWidth
-							onPress={clearCart}
-							style={styles.clearButton}
-						/>
-					</View>
-				</Card>
 			</Container>
 		</SafeArea>
 	);

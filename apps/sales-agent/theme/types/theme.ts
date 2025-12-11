@@ -145,6 +145,7 @@ export interface Shadow {
  * Custom shadows for different levels
  */
 export interface CustomShadows {
+  none: Shadow;
   z1: Shadow;
   z4: Shadow;
   z8: Shadow;

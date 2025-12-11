@@ -70,22 +70,21 @@ const getWalletBalance = async (req, res, next) => {
 		return res.status(200).json({
 			success: true,
 			message: 'Wallet balance retrieved successfully',
-			data: {
-				wallet: {
-					id: wallet._id,
-					rider: wallet.rider,
-					balance: wallet.balance,
-					totalLoadedAmount: wallet.totalLoadedAmount,
-					totalCollected: wallet.totalCollected,
-					outstandingAmount: wallet.outstandingAmount,
-					currentRoute: wallet.currentRoute,
-					status: wallet.status,
-					collectionPercentage: wallet.collectionPercentage,
-					lastSettlement: wallet.lastSettlement,
-					calculatedBalance, // For verification purposes
-					createdAt: wallet.createdAt,
-					updatedAt: wallet.updatedAt,
-				},
+			wallet: {
+				_id: wallet._id,
+				rider: wallet.rider,
+				balance: wallet.balance,
+				totalLoadedAmount: wallet.totalLoadedAmount,
+				totalCollected: wallet.totalCollected,
+				outstandingAmount: wallet.outstandingAmount,
+				currentRoute: wallet.currentRoute,
+				status: wallet.status,
+				collectionPercentage: wallet.collectionPercentage,
+				lastSettlement: wallet.lastSettlement,
+				transactions: wallet.transactions.slice(0, 20), // Latest 20 transactions
+				calculatedBalance, // For verification purposes
+				createdAt: wallet.createdAt,
+				updatedAt: wallet.updatedAt,
 			},
 		});
 	} catch (error) {

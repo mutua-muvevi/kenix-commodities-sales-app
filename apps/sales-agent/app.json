@@ -18,8 +18,11 @@
       "bundleIdentifier": "com.kenix.salesagent",
       "infoPlist": {
         "NSCameraUsageDescription": "This app needs camera access to take photos of shops.",
-        "NSLocationWhenInUseUsageDescription": "This app needs your location to mark shop locations on the map.",
-        "NSPhotoLibraryUsageDescription": "This app needs access to your photo library to select shop photos."
+        "NSLocationWhenInUseUsageDescription": "We need your location to mark shop locations and optimize your routes during work hours.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "We track your location in the background to optimize route planning and provide accurate shop visit tracking throughout your work day.",
+        "NSLocationAlwaysUsageDescription": "We track your location in the background to optimize route planning and provide accurate shop visit tracking throughout your work day.",
+        "NSPhotoLibraryUsageDescription": "This app needs access to your photo library to select shop photos.",
+        "UIBackgroundModes": ["location", "fetch"]
       }
     },
     "android": {
@@ -31,6 +34,9 @@
       "permissions": [
         "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION",
+        "ACCESS_BACKGROUND_LOCATION",
+        "FOREGROUND_SERVICE",
+        "FOREGROUND_SERVICE_LOCATION",
         "CAMERA",
         "READ_EXTERNAL_STORAGE",
         "WRITE_EXTERNAL_STORAGE"
@@ -52,7 +58,10 @@
       [
         "expo-location",
         {
-          "locationAlwaysAndWhenInUsePermission": "Allow Kenix Sales Agent to use your location to mark shop locations."
+          "locationAlwaysAndWhenInUsePermission": "We track your location in the background to optimize route planning and provide accurate shop visit tracking throughout your work day.",
+          "locationWhenInUsePermission": "We need your location to mark shop locations and optimize your routes during work hours.",
+          "isAndroidBackgroundLocationEnabled": true,
+          "isIosBackgroundLocationEnabled": true
         }
       ],
       [

@@ -35,7 +35,7 @@ import {
   Refresh as RefreshIcon,
 } from '@mui/icons-material';
 import { format } from 'date-fns';
-import Map, { Marker, Source, Layer } from 'react-map-gl';
+import Map, { Marker, Source, Layer } from 'react-map-gl/mapbox';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { getRoute, assignRider, overrideSequence, Route } from '@/lib/api/routes';
 import { getUsers } from '@/lib/api/users';

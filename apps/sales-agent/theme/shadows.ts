@@ -56,6 +56,15 @@ const SHADOW_COLOR = '#000000';
  * Custom shadows with different elevation levels
  */
 export const shadows: CustomShadows = {
+  // No shadow
+  none: {
+    shadowColor: 'transparent',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0,
+    shadowRadius: 0,
+    elevation: 0,
+  },
+
   // Elevation level 1 - Subtle shadow for cards
   z1: createShadow(SHADOW_COLOR, 1, 2, 0.08),
 

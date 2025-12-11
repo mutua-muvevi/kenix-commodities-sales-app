@@ -3,8 +3,27 @@ import * as TaskManager from 'expo-task-manager';
 import { Platform } from 'react-native';
 import { locationService } from './api';
 import { websocketService } from './websocket';
+import {
+  distanceToRoute,
+  getDeviationStatus,
+  alertAdminOfDeviation,
+  type RoutePoint,
+  type DeviationStatus,
+} from './deviation';
 
 const LOCATION_TASK_NAME = 'rider-background-location';
+const DEVIATION_CHECK_TASK_NAME = 'rider-deviation-check';
+
+// Store active route info for background monitoring
+let activeRouteInfo: {
+  riderId: string;
+  riderName: string;
+  routeId: string;
+  expectedRoute: RoutePoint[];
+} | null = null;
+
+let lastDeviationAlertTime = 0;
+const DEVIATION_ALERT_COOLDOWN = 60000; // 1 minute between alerts
 
 // Calculate distance between two coordinates using Haversine formula
 export const calculateDistance = (
@@ -52,6 +71,78 @@ export const formatDistance = (distanceKm: number): string => {
     return `${Math.round(distanceKm * 1000)}m`;
   }
   return `${distanceKm.toFixed(1)}km`;
+};
+
+// Calculate ETA based on distance and average speed
+export const calculateETA = (
+  distanceKm: number,
+  averageSpeedKmh: number = 25
+): number => {
+  // Returns ETA in minutes
+  const timeHours = distanceKm / averageSpeedKmh;
+  return Math.round(timeHours * 60);
+};
+
+// Format ETA for display
+export const formatETA = (minutes: number): string => {
+  if (minutes < 1) {
+    return 'Less than 1 min';
+  }
+  if (minutes < 60) {
+    return `${minutes} min${minutes !== 1 ? 's' : ''}`;
+  }
+  const hours = Math.floor(minutes / 60);
+  const remainingMins = minutes % 60;
+  if (remainingMins === 0) {
+    return `${hours} hr${hours !== 1 ? 's' : ''}`;
+  }
+  return `${hours}h ${remainingMins}m`;
+};
+
+// Calculate bearing between two coordinates (direction in degrees)
+export const calculateBearing = (
+  lat1: number,
+  lon1: number,
+  lat2: number,
+  lon2: number
+): number => {
+  const dLon = toRad(lon2 - lon1);
+  const y = Math.sin(dLon) * Math.cos(toRad(lat2));
+  const x =
+    Math.cos(toRad(lat1)) * Math.sin(toRad(lat2)) -
+    Math.sin(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.cos(dLon);
+  const bearing = Math.atan2(y, x);
+  return (((bearing * 180) / Math.PI) + 360) % 360;
+};
+
+// Get cardinal direction from bearing
+export const getCardinalDirection = (bearing: number): string => {
+  const directions = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+  const index = Math.round(bearing / 45) % 8;
+  return directions[index];
+};
+
+// Calculate midpoint between two coordinates
+export const calculateMidpoint = (
+  lat1: number,
+  lon1: number,
+  lat2: number,
+  lon2: number
+): { lat: number; lng: number } => {
+  const dLon = toRad(lon2 - lon1);
+  const bx = Math.cos(toRad(lat2)) * Math.cos(dLon);
+  const by = Math.cos(toRad(lat2)) * Math.sin(dLon);
+  const lat3 =
+    (Math.atan2(
+      Math.sin(toRad(lat1)) + Math.sin(toRad(lat2)),
+      Math.sqrt(
+        (Math.cos(toRad(lat1)) + bx) * (Math.cos(toRad(lat1)) + bx) + by * by
+      )
+    ) *
+      180) /
+    Math.PI;
+  const lon3 = lon1 + (Math.atan2(by, Math.cos(toRad(lat1)) + bx) * 180) / Math.PI;
+  return { lat: lat3, lng: lon3 };
 };
 
 // Request location permissions
@@ -140,7 +231,73 @@ export const watchLocation = async (
   }
 };
 
-// Define background location task
+/**
+ * Set active route for deviation monitoring
+ */
+export const setActiveRouteForMonitoring = (
+  riderId: string,
+  riderName: string,
+  routeId: string,
+  expectedRoute: RoutePoint[]
+): void => {
+  activeRouteInfo = {
+    riderId,
+    riderName,
+    routeId,
+    expectedRoute,
+  };
+  console.log('Active route set for deviation monitoring:', routeId);
+};
+
+/**
+ * Clear active route monitoring
+ */
+export const clearActiveRouteMonitoring = (): void => {
+  activeRouteInfo = null;
+  console.log('Active route monitoring cleared');
+};
+
+/**
+ * Check current location against route and return deviation status
+ */
+export const checkDeviationStatus = async (): Promise<DeviationStatus | null> => {
+  if (!activeRouteInfo) {
+    return null;
+  }
+
+  try {
+    const currentLocation = await getCurrentLocation();
+    if (!currentLocation) {
+      return null;
+    }
+
+    const distance = distanceToRoute(currentLocation, activeRouteInfo.expectedRoute);
+    const deviationStatus = getDeviationStatus(distance);
+
+    // Alert admin if significant deviation and cooldown passed
+    if (deviationStatus.shouldAlert) {
+      const now = Date.now();
+      if (now - lastDeviationAlertTime >= DEVIATION_ALERT_COOLDOWN) {
+        await alertAdminOfDeviation(
+          activeRouteInfo.riderId,
+          activeRouteInfo.riderName,
+          activeRouteInfo.routeId,
+          currentLocation,
+          activeRouteInfo.expectedRoute,
+          deviationStatus
+        );
+        lastDeviationAlertTime = now;
+      }
+    }
+
+    return deviationStatus;
+  } catch (error) {
+    console.error('Error checking deviation status:', error);
+    return null;
+  }
+};
+
+// Define background location task with deviation monitoring
 TaskManager.defineTask(
   LOCATION_TASK_NAME,
   async ({ data, error }: TaskManager.TaskManagerTaskBody<{ locations: Location.LocationObject[] }>) => {
@@ -160,13 +317,30 @@ TaskManager.defineTask(
         };
 
         try {
-          // Get rider ID from secure storage (you'll need to implement this)
-          // For now, we'll emit via WebSocket which should have rider info from auth
+          // Emit location via WebSocket
           websocketService.emitLocation(coords);
 
-          // Also send to API
-          // Note: You'll need to get riderId from storage or context
-          // await locationService.updateRiderLocation(riderId, coords);
+          // Check for route deviation if route is active
+          if (activeRouteInfo) {
+            const distance = distanceToRoute(coords, activeRouteInfo.expectedRoute);
+            const deviationStatus = getDeviationStatus(distance);
+
+            // Alert admin if deviation is significant
+            if (deviationStatus.shouldAlert) {
+              const now = Date.now();
+              if (now - lastDeviationAlertTime >= DEVIATION_ALERT_COOLDOWN) {
+                await alertAdminOfDeviation(
+                  activeRouteInfo.riderId,
+                  activeRouteInfo.riderName,
+                  activeRouteInfo.routeId,
+                  coords,
+                  activeRouteInfo.expectedRoute,
+                  deviationStatus
+                );
+                lastDeviationAlertTime = now;
+              }
+            }
+          }
         } catch (error) {
           console.error('Error updating location:', error);
         }
@@ -175,7 +349,7 @@ TaskManager.defineTask(
   }
 );
 
-// Start background location tracking
+// Start background location tracking with deviation monitoring
 export const startBackgroundTracking = async (): Promise<boolean> => {
   try {
     const hasPermission = await requestLocationPermissions();
@@ -235,6 +409,9 @@ export const stopBackgroundTracking = async (): Promise<void> => {
       await Location.stopLocationUpdatesAsync(LOCATION_TASK_NAME);
       console.log('Background tracking stopped');
     }
+
+    // Clear active route monitoring
+    clearActiveRouteMonitoring();
   } catch (error) {
     console.error('Error stopping background tracking:', error);
   }

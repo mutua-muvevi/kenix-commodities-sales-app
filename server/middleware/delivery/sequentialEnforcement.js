@@ -72,17 +72,21 @@ const enforceSequentialDelivery = async (req, res, next) => {
 
 		if (!validation.valid) {
 			// Log the attempt to skip
-			console.warn(`Sequential delivery violation attempt:`, {
+			logSequentialViolation({
 				deliveryId: delivery._id,
 				deliveryCode: delivery.deliveryCode,
 				riderId: userId,
+				riderEmail: req.user.email,
+				sequenceNumber: delivery.sequenceNumber,
 				reason: validation.reason,
-				timestamp: new Date(),
+				previousDeliveryCode: validation.previousDeliveryCode,
+				route: delivery.route._id,
+				shop: delivery.shop,
 			});
 
 			return res.status(403).json({
 				success: false,
-				message: 'Sequential delivery violation',
+				message: 'Sequential Delivery Enforcement',
 				errors: [validation.reason],
 				data: {
 					currentDelivery: {
@@ -90,11 +94,14 @@ const enforceSequentialDelivery = async (req, res, next) => {
 						deliveryCode: delivery.deliveryCode,
 						sequenceNumber: delivery.sequenceNumber,
 						canProceed: delivery.canProceed,
+						status: delivery.status,
 					},
 					previousDelivery: validation.previousDeliveryCode ? {
 						deliveryCode: validation.previousDeliveryCode,
+						message: 'You must complete this delivery first',
 					} : null,
 					requiresSequential: true,
+					helpText: 'Deliveries must be completed in order. If the shop is unavailable, use the "Shop Unavailable" button to request admin unlock.',
 				},
 			});
 		}
@@ -173,17 +180,38 @@ const getNextAllowedDelivery = async (riderId, routeId) => {
  * @param {Object} details - Violation details
  */
 const logSequentialViolation = (details) => {
-	// TODO: Implement proper logging to database or monitoring service
-	console.warn('SEQUENTIAL DELIVERY VIOLATION:', {
+	const logEntry = {
 		timestamp: new Date().toISOString(),
+		level: 'WARNING',
+		type: 'SEQUENTIAL_DELIVERY_VIOLATION',
 		...details,
-	});
+	};
 
-	// In production, you might want to:
-	// 1. Store violations in a dedicated collection
-	// 2. Send alerts to admins
-	// 3. Track repeat offenders
-	// 4. Generate reports
+	// Console logging with enhanced formatting
+	console.warn('========================================');
+	console.warn('SEQUENTIAL DELIVERY VIOLATION DETECTED');
+	console.warn('========================================');
+	console.warn(`Timestamp: ${logEntry.timestamp}`);
+	console.warn(`Rider: ${details.riderEmail} (${details.riderId})`);
+	console.warn(`Delivery: ${details.deliveryCode} (Sequence: ${details.sequenceNumber})`);
+	console.warn(`Reason: ${details.reason}`);
+	if (details.previousDeliveryCode) {
+		console.warn(`Previous Delivery: ${details.previousDeliveryCode} (must complete first)`);
+	}
+	console.warn('========================================\n');
+
+	// TODO: In production, implement:
+	// 1. Store violations in a dedicated MongoDB collection
+	// 2. Send real-time alerts to admins via WebSocket/Email
+	// 3. Track repeat offenders and flag suspicious behavior
+	// 4. Generate daily/weekly reports for compliance
+	// 5. Integrate with monitoring services (Datadog, Sentry, etc.)
+
+	// Example MongoDB logging (commented out):
+	// await ViolationLog.create(logEntry);
+
+	// Example admin alert (commented out):
+	// emitToRole('admin', 'security:violation', logEntry);
 };
 
 module.exports = {

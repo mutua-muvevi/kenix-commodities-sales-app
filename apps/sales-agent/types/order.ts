@@ -11,6 +11,7 @@ export interface Order {
   _id: string;
   orderId: string;
   shop: string | Shop;
+  orderer?: string | Shop; // Added for compatibility with existing API
   products: OrderProduct[];
   totalPrice: number;
   discountAmount?: number;
@@ -22,6 +23,9 @@ export interface Order {
   deliveryAddress?: Address;
   deliveryNotes?: string;
   createdBy: string;
+  placedOnBehalf?: boolean;
+  notifyShopOwner?: boolean;
+  agentCommission?: number;
   assignedRider?: string;
   trackingNumber?: string;
   estimatedDeliveryTime?: string;
@@ -61,6 +65,9 @@ export interface OrderFormData {
   deliveryAddress?: Address;
   deliveryNotes?: string;
   specialInstructions?: string;
+  placedOnBehalf?: boolean;
+  notifyShopOwner?: boolean;
+  commissionRate?: number;
 }
 
 export interface OrderProductInput {
@@ -131,4 +138,19 @@ export interface OfflineOrder {
   syncAttempts: number;
   lastSyncAttempt?: string;
   error?: string;
+}
+
+export interface CreditInfo {
+  shopId: string;
+  creditLimit: number;
+  creditUsed: number;
+  availableCredit: number;
+}
+
+export interface CommissionInfo {
+  orderId: string;
+  orderTotal: number;
+  commissionRate: number;
+  commissionAmount: number;
+  status: 'pending' | 'approved' | 'paid';
 }

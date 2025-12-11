@@ -18,6 +18,7 @@ import {
   Dashboard,
   Store,
   Inventory2,
+  Category,
   ShoppingCart,
   Route,
   MyLocation,
@@ -50,6 +51,11 @@ const menuItems = [
     title: 'Products',
     path: '/dashboard/products',
     icon: <Inventory2 />,
+  },
+  {
+    title: 'Categories',
+    path: '/dashboard/categories',
+    icon: <Category />,
   },
   {
     title: 'Orders',

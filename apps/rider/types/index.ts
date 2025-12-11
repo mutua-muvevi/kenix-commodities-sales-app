@@ -42,7 +42,7 @@ export interface Delivery {
   items: OrderItem[];
   totalAmount: number;
   deliverySequence: number;
-  status: 'pending' | 'in_transit' | 'arrived' | 'completed' | 'failed';
+  status: 'pending' | 'in_transit' | 'arrived' | 'completed' | 'failed' | 'skipped';
   assignedRiderId?: string;
   arrivalTime?: Date;
   completionTime?: Date;
@@ -54,6 +54,15 @@ export interface Delivery {
   location?: {
     lat: number;
     lng: number;
+  };
+  // Sequential enforcement fields
+  canProceed: boolean;
+  previousDelivery?: string | null;
+  adminOverride?: {
+    isOverridden: boolean;
+    reason?: string;
+    overriddenBy?: string;
+    overriddenAt?: Date;
   };
 }
 
@@ -70,19 +79,38 @@ export interface Route {
 }
 
 export interface Wallet {
-  riderId: string;
-  balance: number;
+  _id: string;
+  rider: string;
+  balance: number; // Current balance (negative = rider owes company, positive = company owes rider)
+  totalLoadedAmount: number; // Total value of goods loaded for current route
+  totalCollected: number; // Total payments collected so far
+  outstandingAmount: number; // Remaining amount to collect (calculated)
+  currentRoute?: string; // Active route ID
   transactions: WalletTransaction[];
+  status: 'active' | 'suspended' | 'settled';
+  collectionPercentage: number; // Virtual field: percentage of total collected
+  lastSettlement?: {
+    amount: number;
+    settledAt: Date;
+    settledBy: string;
+    notes?: string;
+  };
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export interface WalletTransaction {
-  _id: string;
-  type: 'assignment' | 'delivery_complete' | 'adjustment';
+  _id?: string;
+  type: 'load' | 'collection' | 'adjustment' | 'settlement';
   amount: number;
-  balanceAfter: number;
+  previousBalance: number;
+  newBalance: number;
   description: string;
+  relatedRoute?: string;
+  relatedDelivery?: string;
+  relatedTransaction?: string;
+  performedBy?: string;
   timestamp: Date;
-  deliveryId?: string;
 }
 
 export interface Stats {
@@ -146,4 +174,28 @@ export interface UnlockRequest {
     lat: number;
     lng: number;
   };
+}
+
+// Skip Request Types
+export interface SkipRequest {
+  deliveryId: string;
+  shopId: string;
+  riderId: string;
+  reason: 'shop_closed' | 'owner_not_present' | 'wrong_address' | 'refused_delivery' | 'other';
+  notes: string;
+  photo?: string;
+  location?: {
+    lat: number;
+    lng: number;
+  };
+  timestamp: string;
+}
+
+export interface SkipApproval {
+  deliveryId: string;
+  shopId: string;
+  approved: boolean;
+  approvedBy: string;
+  reason?: string;
+  timestamp: string;
 }

@@ -59,19 +59,23 @@
  */
 
 // Form Provider
-export { FormProvider, useFormContext, useWatch } from './FormProvider';
+import FormProvider_ from './FormProvider';
+export { FormProvider_ as FormProvider, useFormContext, useWatch } from './FormProvider';
 export type { FormProviderProps } from './FormProvider';
 
 // Text Field
-export { RHFTextField } from './RHFTextField';
+import RHFTextField_ from './RHFTextField';
+export { RHFTextField_ as RHFTextField } from './RHFTextField';
 export type { RHFTextFieldProps } from './RHFTextField';
 
 // Select Field
-export { RHFSelect } from './RHFSelect';
+import RHFSelect_ from './RHFSelect';
+export { RHFSelect_ as RHFSelect } from './RHFSelect';
 export type { RHFSelectProps, SelectOption } from './RHFSelect';
 
 // Checkbox
-export { RHFCheckbox } from './RHFCheckbox';
+import RHFCheckbox_ from './RHFCheckbox';
+export { RHFCheckbox_ as RHFCheckbox } from './RHFCheckbox';
 export type { RHFCheckboxProps } from './RHFCheckbox';
 
 /**
@@ -102,8 +106,8 @@ export { yupResolver } from '@hookform/resolvers/yup';
  * Default export for convenience
  */
 export default {
-  FormProvider,
-  RHFTextField,
-  RHFSelect,
-  RHFCheckbox,
+  FormProvider: FormProvider_,
+  RHFTextField: RHFTextField_,
+  RHFSelect: RHFSelect_,
+  RHFCheckbox: RHFCheckbox_,
 };

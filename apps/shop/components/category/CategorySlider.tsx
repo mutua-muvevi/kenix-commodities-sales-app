@@ -1,11 +1,13 @@
 import React from "react";
-import { View, FlatList, StyleSheet, Dimensions } from "react-native";
+import { View, FlatList, StyleSheet, Dimensions, Platform } from "react-native";
+import * as Haptics from "expo-haptics";
 import { useTheme } from "../../hooks/useTheme";
 import { Category } from "../../store/types/product";
 import { CategoryCard } from "./CategoryCard";
 
 const { width: screenWidth } = Dimensions.get("window");
-const SLIDER_CARD_WIDTH = 120; // Fixed width for horizontal slider
+const SLIDER_CARD_WIDTH = 140;
+const CARD_HEIGHT = 110;
 
 interface CategorySliderProps {
 	categories: Category[];
@@ -15,31 +17,35 @@ interface CategorySliderProps {
 export const CategorySlider: React.FC<CategorySliderProps> = ({ categories, onCategoryPress }) => {
 	const { theme } = useTheme();
 
-	const renderCategoryItem = ({ item, index }: { item: Category; index: number }) => (
-		<View style={styles.itemContainer}>
-			<CategoryCard category={item} index={index} onPress={() => onCategoryPress?.(item)} />
-		</View>
-	);
+	const handleCategoryPress = (category: Category) => {
+		if (Platform.OS === "ios") {
+			Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+		}
+		onCategoryPress?.(category);
+	};
 
 	const styles = StyleSheet.create({
 		container: {
-			marginVertical: theme.spacing.sm,
+			marginBottom: theme.spacing.md,
 		},
 		contentContainer: {
-			paddingHorizontal: theme.spacing.sm,
+			paddingHorizontal: theme.spacing.lg,
+			paddingVertical: theme.spacing.xs,
 		},
 		itemContainer: {
 			width: SLIDER_CARD_WIDTH,
-			marginRight: theme.spacing.sm,
+			height: CARD_HEIGHT,
+			marginRight: theme.spacing.md,
+		},
+		separator: {
+			width: theme.spacing.sm,
 		},
 	});
 
-	// Override card width for horizontal layout
 	const CategoryCardWithCustomWidth = ({ category, index, onPress }: any) => {
 		const cardStyles = StyleSheet.create({
 			customContainer: {
 				width: SLIDER_CARD_WIDTH,
-				marginBottom: theme.spacing.sm,
 			},
 		});
 
@@ -50,6 +56,8 @@ export const CategorySlider: React.FC<CategorySliderProps> = ({ categories, onCa
 		);
 	};
 
+	const renderSeparator = () => <View style={styles.separator} />;
+
 	return (
 		<View style={styles.container}>
 			<FlatList
@@ -58,13 +66,23 @@ export const CategorySlider: React.FC<CategorySliderProps> = ({ categories, onCa
 					<CategoryCardWithCustomWidth
 						category={item}
 						index={index}
-						onPress={() => onCategoryPress?.(item)}
+						onPress={() => handleCategoryPress(item)}
 					/>
 				)}
 				keyExtractor={(item) => item._id}
 				horizontal
 				showsHorizontalScrollIndicator={false}
 				contentContainerStyle={styles.contentContainer}
+				ItemSeparatorComponent={renderSeparator}
+				snapToInterval={SLIDER_CARD_WIDTH + theme.spacing.md}
+				decelerationRate="fast"
+				snapToAlignment="start"
+				bounces={true}
+				overScrollMode="auto"
+				removeClippedSubviews={Platform.OS === "android"}
+				maxToRenderPerBatch={6}
+				initialNumToRender={4}
+				windowSize={5}
 			/>
 		</View>
 	);

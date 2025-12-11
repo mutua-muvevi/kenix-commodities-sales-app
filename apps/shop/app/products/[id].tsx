@@ -159,7 +159,7 @@ const ProductDetailScreen = () => {
 			fontWeight: "600",
 		},
 		contentContainer: {
-			paddingBottom: theme.spacing.xxl * 2,
+			paddingBottom: 140, // Extra padding to account for fixed bottom button
 		},
 		productInfo: {
 			marginBottom: theme.spacing.lg,

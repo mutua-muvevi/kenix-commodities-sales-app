@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
   Box,
   Card,
@@ -14,70 +14,114 @@ import {
   Container,
   IconButton,
   InputAdornment,
+  Link as MuiLink,
+  Divider,
 } from '@mui/material';
 import { Visibility, VisibilityOff } from '@mui/icons-material';
 import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import Link from 'next/link';
 import { login, LoginCredentials } from '@/lib/api/auth';
-import { useAuthStore } from '@/store/authStore';
+import { useAuthStore, MAX_LOGIN_ATTEMPTS } from '@/store/authStore';
 import { handleApiError } from '@/lib/api/client';
 
-export default function LoginPage() {
+// Zod validation schema
+const loginSchema = z.object({
+  email: z.string().email('Invalid email address'),
+  password: z.string().min(1, 'Password is required'),
+});
+
+type LoginFormData = z.infer<typeof loginSchema>;
+
+function LoginContent() {
   const router = useRouter();
-  const { setUser, setToken } = useAuthStore();
+  const searchParams = useSearchParams();
+  const { setUser, incrementLoginAttempts, resetLoginAttempts, loginAttempts } = useAuthStore();
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const {
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<LoginCredentials>();
+  } = useForm<LoginFormData>({
+    resolver: zodResolver(loginSchema),
+  });
 
-  const onSubmit = async (data: LoginCredentials) => {
+  useEffect(() => {
+    // Check for success messages from URL params
+    const verified = searchParams.get('verified');
+    const redirect = searchParams.get('redirect');
+    const errorParam = searchParams.get('error');
+
+    if (verified === 'true') {
+      setSuccessMessage('Email verified successfully! You can now log in.');
+    }
+
+    if (errorParam === 'unauthorized') {
+      setError('You do not have permission to access the admin dashboard.');
+    }
+  }, [searchParams]);
+
+  const onSubmit = async (data: LoginFormData) => {
+    // Check if login attempts exceeded
+    if (loginAttempts >= MAX_LOGIN_ATTEMPTS) {
+      setError(
+        `Too many failed login attempts. Please try again later or reset your password.`
+      );
+      return;
+    }
+
     setLoading(true);
     setError(null);
+    setSuccessMessage(null);
 
     try {
       const response = await login(data);
 
-      if (response.success) {
-        // Store user and token in zustand
-        setUser(response.data.user);
-        setToken(response.data.token);
+      if (response.success && response.data) {
+        const { user } = response.data;
+
+        // Store user in zustand
+        setUser(user);
+        resetLoginAttempts();
 
         // Check user role and redirect accordingly
-        const userRole = response.data.user.role;
+        const userRole = user.role;
 
         if (userRole === 'admin') {
-          router.push('/dashboard');
+          // Check for redirect parameter
+          const redirect = searchParams.get('redirect');
+          router.push(redirect || '/dashboard');
         } else if (userRole === 'shop') {
-          // Shops should use mobile app
           setError('Please use the mobile app to access your shop account');
           setLoading(false);
-          return;
         } else if (userRole === 'rider') {
-          // Riders should use mobile app
           setError('Please use the rider mobile app to access your account');
           setLoading(false);
-          return;
         } else if (userRole === 'sales_agent') {
-          // Sales agents should use mobile app
           setError('Please use the sales agent mobile app to access your account');
           setLoading(false);
-          return;
         } else {
-          router.push('/dashboard');
+          setError('Invalid user role. Please contact support.');
+          setLoading(false);
         }
       } else {
+        incrementLoginAttempts();
         setError(response.message || 'Login failed');
         setLoading(false);
       }
     } catch (err: any) {
+      incrementLoginAttempts();
       setError(handleApiError(err));
       setLoading(false);
     }
   };
+
+  const remainingAttempts = MAX_LOGIN_ATTEMPTS - loginAttempts;
 
   return (
     <Box
@@ -101,9 +145,24 @@ export default function LoginPage() {
               </Typography>
             </Box>
 
+            {successMessage && (
+              <Alert severity="success" sx={{ mb: 3 }} onClose={() => setSuccessMessage(null)}>
+                {successMessage}
+              </Alert>
+            )}
+
             {error && (
               <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>
                 {error}
+              </Alert>
+            )}
+
+            {loginAttempts > 0 && loginAttempts < MAX_LOGIN_ATTEMPTS && (
+              <Alert severity="warning" sx={{ mb: 3 }}>
+                <Typography variant="body2">
+                  {remainingAttempts} login attempt{remainingAttempts !== 1 ? 's' : ''} remaining
+                  before account is temporarily locked.
+                </Typography>
               </Alert>
             )}
 
@@ -113,16 +172,11 @@ export default function LoginPage() {
                 label="Email Address"
                 type="email"
                 margin="normal"
-                {...register('email', {
-                  required: 'Email is required',
-                  pattern: {
-                    value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                    message: 'Invalid email address',
-                  },
-                })}
+                {...register('email')}
                 error={!!errors.email}
                 helperText={errors.email?.message}
-                disabled={loading}
+                disabled={loading || loginAttempts >= MAX_LOGIN_ATTEMPTS}
+                autoFocus
               />
 
               <TextField
@@ -130,23 +184,17 @@ export default function LoginPage() {
                 label="Password"
                 type={showPassword ? 'text' : 'password'}
                 margin="normal"
-                {...register('password', {
-                  required: 'Password is required',
-                  minLength: {
-                    value: 6,
-                    message: 'Password must be at least 6 characters',
-                  },
-                })}
+                {...register('password')}
                 error={!!errors.password}
                 helperText={errors.password?.message}
-                disabled={loading}
+                disabled={loading || loginAttempts >= MAX_LOGIN_ATTEMPTS}
                 InputProps={{
                   endAdornment: (
                     <InputAdornment position="end">
                       <IconButton
                         onClick={() => setShowPassword(!showPassword)}
                         edge="end"
-                        disabled={loading}
+                        disabled={loading || loginAttempts >= MAX_LOGIN_ATTEMPTS}
                       >
                         {showPassword ? <VisibilityOff /> : <Visibility />}
                       </IconButton>
@@ -155,19 +203,44 @@ export default function LoginPage() {
                 }}
               />
 
+              <Box textAlign="right" mt={1} mb={2}>
+                <Link href="/auth/forgot-password" passHref legacyBehavior>
+                  <MuiLink variant="body2" underline="hover">
+                    Forgot password?
+                  </MuiLink>
+                </Link>
+              </Box>
+
               <Button
                 type="submit"
                 fullWidth
                 variant="contained"
                 size="large"
-                sx={{ mt: 3, mb: 2 }}
-                disabled={loading}
+                sx={{ mt: 1, mb: 2 }}
+                disabled={loading || loginAttempts >= MAX_LOGIN_ATTEMPTS}
               >
                 {loading ? <CircularProgress size={24} color="inherit" /> : 'Login'}
               </Button>
             </form>
 
-            <Typography variant="body2" color="text.secondary" textAlign="center" mt={2}>
+            <Divider sx={{ my: 3 }}>
+              <Typography variant="body2" color="text.secondary">
+                OR
+              </Typography>
+            </Divider>
+
+            <Box textAlign="center">
+              <Typography variant="body2" color="text.secondary">
+                Don't have an account?{' '}
+                <Link href="/auth/register" passHref legacyBehavior>
+                  <MuiLink underline="hover" sx={{ fontWeight: 600 }}>
+                    Create one
+                  </MuiLink>
+                </Link>
+              </Typography>
+            </Box>
+
+            <Typography variant="body2" color="text.secondary" textAlign="center" mt={3}>
               Admin access only. For shop, rider, or sales agent access, please use the mobile
               application.
             </Typography>
@@ -175,5 +248,26 @@ export default function LoginPage() {
         </Card>
       </Container>
     </Box>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <Box
+          sx={{
+            minHeight: '100vh',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <CircularProgress />
+        </Box>
+      }
+    >
+      <LoginContent />
+    </Suspense>
   );
 }

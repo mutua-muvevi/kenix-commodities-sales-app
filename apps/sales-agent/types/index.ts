@@ -47,6 +47,14 @@ export type {
   BarcodeResult,
 } from './product';
 
+// Category Types
+export type {
+  Category,
+  CategoryListItem,
+  CategoryFilters,
+  CategoryResponse,
+} from './category';
+
 // Order Types
 export type {
   Order,

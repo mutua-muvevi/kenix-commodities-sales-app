@@ -52,7 +52,7 @@ import { getUsers } from '@/lib/api/users';
 import { handleApiError } from '@/lib/api/client';
 import StatusBadge from '@/components/dashboard/StatusBadge';
 import { toast } from 'sonner';
-import Map from 'react-map-gl';
+import Map from 'react-map-gl/mapbox';
 import 'mapbox-gl/dist/mapbox-gl.css';
 
 const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || '';

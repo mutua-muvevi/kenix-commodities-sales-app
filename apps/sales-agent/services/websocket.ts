@@ -145,6 +145,16 @@ class WebSocketService {
         data.data || {}
       );
     });
+
+    // Location update acknowledgment
+    this.socket.on('location:updated', (data) => {
+      console.log('Location update acknowledged:', data);
+    });
+
+    // Location tracking error
+    this.socket.on('location:error', (data) => {
+      console.error('Location tracking error from server:', data);
+    });
   }
 
   private scheduleReconnect() {

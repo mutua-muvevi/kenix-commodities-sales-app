@@ -58,6 +58,22 @@ interface ThemePalette {
   };
   divider: string;
   border: string;
+  grey: {
+    50: string;
+    100: string;
+    200: string;
+    300: string;
+    400: string;
+    500: string;
+    600: string;
+    700: string;
+    800: string;
+    900: string;
+  };
+  common: {
+    black: string;
+    white: string;
+  };
 }
 
 interface ThemeTypography {
@@ -238,6 +254,22 @@ const lightPalette: ThemePalette = {
   },
   divider: '#E0E0E0',
   border: '#EEEEEE',
+  grey: {
+    50: '#FAFAFA',
+    100: '#F5F5F5',
+    200: '#EEEEEE',
+    300: '#E0E0E0',
+    400: '#BDBDBD',
+    500: '#9E9E9E',
+    600: '#757575',
+    700: '#616161',
+    800: '#424242',
+    900: '#212121',
+  },
+  common: {
+    black: '#000000',
+    white: '#FFFFFF',
+  },
 };
 
 const darkPalette: ThemePalette = {
@@ -290,6 +322,22 @@ const darkPalette: ThemePalette = {
   },
   divider: '#373737',
   border: '#2C2C2C',
+  grey: {
+    50: '#FAFAFA',
+    100: '#F5F5F5',
+    200: '#EEEEEE',
+    300: '#E0E0E0',
+    400: '#BDBDBD',
+    500: '#9E9E9E',
+    600: '#757575',
+    700: '#616161',
+    800: '#424242',
+    900: '#212121',
+  },
+  common: {
+    black: '#000000',
+    white: '#FFFFFF',
+  },
 };
 
 const typography: ThemeTypography = {

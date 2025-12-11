@@ -24,5 +24,5 @@ export type {
 } from './layout';
 
 // Feature Components
-export { LocationPicker } from './LocationPicker';
-export { ShopPhotoCapture } from './ShopPhotoCapture';
+export { default as LocationPicker } from './LocationPicker';
+export { default as ShopPhotoCapture } from './ShopPhotoCapture';

@@ -99,32 +99,13 @@ const assignRider = async (req, res) => {
 
 		await route.save({ session });
 
-		// Update rider wallet - add negative balance for products to deliver
-		let riderWallet = await RiderWallet.findOne({ rider: riderId }).session(session);
+		// Get or create rider wallet
+		let riderWallet = await RiderWallet.getOrCreateWallet(riderId);
+		riderWallet = await RiderWallet.findOne({ rider: riderId }).session(session);
 
-		if (!riderWallet) {
-			// Create wallet if doesn't exist
-			riderWallet = new RiderWallet({
-				rider: riderId,
-				currentBalance: -totalDeliveryValue,
-				totalDeliveries: 0,
-				totalEarnings: 0,
-			});
-		} else {
-			riderWallet.currentBalance -= totalDeliveryValue;
-		}
-
-		// Add transaction record
-		riderWallet.transactions.push({
-			type: 'debit',
-			amount: totalDeliveryValue,
-			description: `Route ${route.routeCode} assigned (${orders.length} orders)`,
-			relatedRoute: route._id,
-			balanceAfter: riderWallet.currentBalance,
-			timestamp: new Date(),
-		});
-
-		await riderWallet.save({ session });
+		// Load goods for route (creates negative balance)
+		// This method handles balance decrease and transaction recording
+		await riderWallet.loadGoodsForRoute(route._id, totalDeliveryValue, adminId);
 
 		// Update all orders on route with rider assignment
 		await Order.updateMany(
@@ -151,13 +132,21 @@ const assignRider = async (req, res) => {
 			await sendRiderRouteAssignment(rider.phoneNumber, orders.length, route.routeCode);
 		}
 
-		// WebSocket: Notify rider
+		// WebSocket: Notify rider about route and wallet update
 		emitToUser(riderId.toString(), 'route:assigned', {
 			routeId: route._id,
 			routeCode: route.routeCode,
 			totalOrders: orders.length,
 			totalValue: totalDeliveryValue,
 			message: `You have been assigned route ${route.routeCode} with ${orders.length} orders`
+		});
+
+		// WebSocket: Notify rider about wallet update
+		emitToUser(riderId.toString(), 'wallet:updated', {
+			balance: riderWallet.balance,
+			totalLoadedAmount: riderWallet.totalLoadedAmount,
+			outstandingAmount: riderWallet.outstandingAmount,
+			message: `Wallet updated: ${orders.length} orders loaded (KES ${totalDeliveryValue.toLocaleString()})`
 		});
 
 		return res.status(200).json({
@@ -168,7 +157,9 @@ const assignRider = async (req, res) => {
 				assignment: {
 					totalOrders: orders.length,
 					totalValue: totalDeliveryValue,
-					riderWalletBalance: riderWallet.currentBalance,
+					riderWalletBalance: riderWallet.balance,
+					totalLoadedAmount: riderWallet.totalLoadedAmount,
+					outstandingAmount: riderWallet.outstandingAmount,
 				},
 			},
 		});
