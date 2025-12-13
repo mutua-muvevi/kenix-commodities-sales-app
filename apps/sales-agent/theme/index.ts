@@ -7,7 +7,7 @@
  */
 
 import { ThemeType, ThemeConfig, ThemeMode } from './types/theme';
-import { getPalette, createCustomPalette } from './palette';
+import { palette as getPalette } from './palette';
 import { typography } from './typography';
 import { shadows } from './shadows';
 import { spacing, borderRadius } from './spacing';
@@ -21,9 +21,7 @@ import { createComponentStyles } from './components';
  */
 export const createTheme = (config?: ThemeConfig): ThemeType => {
   const mode = config?.mode || 'light';
-  const palette = config?.primaryColor || config?.secondaryColor
-    ? createCustomPalette(mode, config.primaryColor, config.secondaryColor)
-    : getPalette(mode);
+  const palette = getPalette(mode);
 
   const baseTheme: ThemeType = {
     palette,
@@ -155,11 +153,11 @@ export {
   success,
   warning,
   error,
-  lightPalette,
-  darkPalette,
-  getPalette,
-  createCustomPalette,
+  palette,
 } from './palette';
+
+// Alias palette to getPalette for compatibility
+export { palette as getPalette } from './palette';
 
 // Typography
 export {

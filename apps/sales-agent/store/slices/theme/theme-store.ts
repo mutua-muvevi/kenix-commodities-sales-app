@@ -4,7 +4,7 @@ import { persist, createJSONStorage } from "zustand/middleware";
 import { devtools } from "zustand/middleware";
 import { logger } from "../../middleware/logger";
 import { secureStorage } from "../../middleware/persist";
-import { createTheme } from "../../../theme";
+import { createTheme } from "../../../theme/index";
 import { ThemeType } from "../../../theme/types/theme";
 
 export type ThemeMode = "light" | "dark" | "auto";
@@ -24,10 +24,18 @@ interface ThemeStore extends ThemeState {
 
 // Get initial theme without using hooks
 const getInitialTheme = (): ThemeState => {
+	const initialTheme = createTheme({ mode: "light" });
+	console.log("[ThemeStore] Initial theme created:", initialTheme ? "✓" : "✗");
+
+	if (!initialTheme || !initialTheme.palette) {
+		console.error("[ThemeStore] ERROR: createTheme returned invalid theme!");
+		throw new Error("Theme creation failed - createTheme() returned undefined or invalid theme");
+	}
+
 	return {
 		themeMode: "auto",
 		isDark: false, // Default to light, will be updated on initialization
-		theme: createTheme({ mode: "light" }),
+		theme: initialTheme,
 	};
 };
 
