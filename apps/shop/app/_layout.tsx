@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import { useColorScheme } from "react-native";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
+import Toast from "react-native-toast-message";
 import { useThemeStore } from "../store/slices/theme/theme-store";
 import { FloatingCartButton } from "../components/ui/FloatingCartButton";
 
@@ -32,6 +33,8 @@ function RootLayoutNav() {
 			/>
 			{/* Floating Cart Button - appears on all screens except cart */}
 			<FloatingCartButton />
+			{/* Toast notifications */}
+			<Toast />
 		</>
 	);
 }

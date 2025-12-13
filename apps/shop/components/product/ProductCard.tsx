@@ -12,13 +12,14 @@ import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import Toast from "react-native-toast-message";
 import { useTheme } from "../../hooks";
 import { useCart } from "../../store";
 import type { Product } from "../../store/types/product";
 
 const { width: screenWidth } = Dimensions.get("window");
-const CARD_WIDTH = (screenWidth - 48) / 2;
-const IMAGE_HEIGHT = CARD_WIDTH * 0.85;
+// Card width will be controlled by parent container
+const IMAGE_ASPECT_RATIO = 0.85;
 
 interface ProductCardProps {
 	product: Product;
@@ -58,9 +59,19 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, index = 0 }) 
 			buttonScale.value = withSpring(1, { damping: 10, stiffness: 400 });
 		});
 		addItem(product, 1);
+
+		// Show toast notification
+		Toast.show({
+			type: "success",
+			text1: "Added to cart",
+			text2: `${product.name}`,
+			position: "bottom",
+			visibilityTime: 2000,
+		});
 	};
 
 	const animatedCardStyle = useAnimatedStyle(() => ({
+		width: '100%',
 		transform: [{ scale: scale.value }],
 	}));
 
@@ -84,7 +95,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, index = 0 }) 
 
 	const styles = StyleSheet.create({
 		container: {
-			width: CARD_WIDTH,
+			width: "100%",
 			backgroundColor: theme.palette.background.paper,
 			borderRadius: theme.borderRadius.lg,
 			marginBottom: theme.spacing.md,
@@ -99,7 +110,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, index = 0 }) 
 		},
 		imageContainer: {
 			width: "100%",
-			height: IMAGE_HEIGHT,
+			aspectRatio: 1 / IMAGE_ASPECT_RATIO,
 			backgroundColor: isDark ? theme.palette.grey[800] : theme.palette.grey[100],
 			position: "relative",
 		},

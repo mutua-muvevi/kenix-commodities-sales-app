@@ -1,7 +1,8 @@
 // app/products/[id].tsx - Product Detail Screen
 import React, { useState } from "react";
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, Image } from "react-native";
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, Image, Platform } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Animated, { FadeInUp, FadeInDown } from "react-native-reanimated";
 import { Ionicons } from "@expo/vector-icons";
 import { SafeArea, Container } from "../../components/layout";
@@ -15,6 +16,7 @@ const { width } = Dimensions.get("window");
 const ProductDetailScreen = () => {
 	const { theme } = useTheme();
 	const router = useRouter();
+	const insets = useSafeAreaInsets();
 	const { id } = useLocalSearchParams<{ id: string }>();
 	const { getProductById } = useProductsStore();
 	const { addItem } = useCart();
@@ -159,7 +161,7 @@ const ProductDetailScreen = () => {
 			fontWeight: "600",
 		},
 		contentContainer: {
-			paddingBottom: 140, // Extra padding to account for fixed bottom button
+			paddingBottom: 100, // Reduced padding for better space utilization
 		},
 		productInfo: {
 			marginBottom: theme.spacing.lg,
@@ -288,8 +290,8 @@ const ProductDetailScreen = () => {
 			borderTopWidth: 1,
 			borderTopColor: theme.palette.divider,
 			paddingHorizontal: theme.spacing.lg,
-			paddingVertical: theme.spacing.md,
-			paddingBottom: theme.spacing.xl,
+			paddingTop: theme.spacing.md,
+			// paddingBottom applied dynamically with safe area insets
 		},
 		addToCartButton: {
 			marginBottom: theme.spacing.sm,
@@ -477,7 +479,15 @@ const ProductDetailScreen = () => {
 				</ScrollView>
 
 				{/* Fixed Bottom Actions */}
-				<Animated.View entering={FadeInUp.delay(600).springify()} style={styles.fixedBottom}>
+				<Animated.View
+					entering={FadeInUp.delay(600).springify()}
+					style={[
+						styles.fixedBottom,
+						{
+							paddingBottom: Platform.OS === "ios" ? Math.max(insets.bottom, theme.spacing.md) : theme.spacing.md,
+						},
+					]}
+				>
 					<Button
 						title={product.inStock ? "Add to Cart" : "Out of Stock"}
 						variant="gradient"

@@ -282,7 +282,7 @@ const CartScreen = () => {
 						<View style={styles.header}>
 							<Text style={styles.title}>Shopping Cart</Text>
 							<Text style={styles.subtitle}>
-								{totalItems} item{totalItems !== 1 ? "s" : ""} in your cart
+								{totalItems || 0} item{(totalItems || 0) !== 1 ? "s" : ""} in your cart
 							</Text>
 						</View>
 					}

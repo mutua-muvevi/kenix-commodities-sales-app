@@ -71,8 +71,12 @@ export const FloatingCartButton: React.FC<FloatingCartButtonProps> = ({
 		router.push("/(tabs)/cart");
 	};
 
-	const bottomPosition = Platform.OS === "ios" ? insets.bottom + 16 : 16;
-	const badgeCount = totalItems > 99 ? "99+" : totalItems.toString();
+	// Position FAB well above tab bar (tab bar height + 56px margin for clearance)
+	const tabBarHeight = Platform.OS === "ios" ? 50 : 56;
+	const bottomPosition = Platform.OS === "ios"
+		? insets.bottom + tabBarHeight + 56
+		: tabBarHeight + 56;
+	const badgeCount = totalItems > 99 ? "99+" : (totalItems || 0).toString();
 
 	return (
 		<AnimatedTouchable
@@ -87,7 +91,7 @@ export const FloatingCartButton: React.FC<FloatingCartButtonProps> = ({
 			]}
 			onPress={handlePress}
 			activeOpacity={0.85}
-			accessibilityLabel={`Shopping cart, ${totalItems} items`}
+			accessibilityLabel={`Shopping cart, ${totalItems || 0} items`}
 			accessibilityRole="button"
 			accessibilityHint="Navigate to shopping cart"
 		>

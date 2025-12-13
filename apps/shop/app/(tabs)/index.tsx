@@ -8,6 +8,7 @@ import {
 	TouchableOpacity,
 	useWindowDimensions,
 	Pressable,
+	FlatList,
 } from "react-native";
 import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
 import { LinearGradient } from "expo-linear-gradient";
@@ -31,13 +32,34 @@ const HomeScreen = () => {
 	const { totalItems, totalPrice } = useCart();
 
 	const [refreshing, setRefreshing] = useState(false);
+	const flashSaleRef = React.useRef<FlatList>(null);
+	const [flashSaleIndex, setFlashSaleIndex] = useState(0);
 
-	// Calculate compact category card size - 3 columns with minimal margins
-	const categoryCardWidth = (width - 32) / 3 - 4; // 16px horizontal padding + 4px gaps
+	// Calculate compact category card size - 3 columns edge-to-edge
+	const categoryCardWidth = (width - 24 - 12) / 3; // 12px horizontal padding + 12px gaps (6px each side)
 
 	useEffect(() => {
 		loadInitialData();
 	}, []);
+
+	// Auto-scroll flash sale carousel
+	useEffect(() => {
+		const flashSaleProducts = allProducts.products.slice(0, 10);
+		if (flashSaleProducts.length === 0) return;
+
+		const interval = setInterval(() => {
+			setFlashSaleIndex((prevIndex) => {
+				const nextIndex = (prevIndex + 1) % flashSaleProducts.length;
+				flashSaleRef.current?.scrollToIndex({
+					index: nextIndex,
+					animated: true,
+				});
+				return nextIndex;
+			});
+		}, 3000); // Auto-scroll every 3 seconds
+
+		return () => clearInterval(interval);
+	}, [allProducts.products]);
 
 	const loadInitialData = async () => {
 		try {
@@ -164,11 +186,12 @@ const HomeScreen = () => {
 			paddingHorizontal: 12,
 			flexDirection: "row",
 			flexWrap: "wrap",
-			gap: 6,
+			justifyContent: "space-between",
+			rowGap: 12,
 			marginBottom: 12,
 		},
 		categoryCard: {
-			width: categoryCardWidth,
+			flex: 1,
 			alignItems: "center",
 			backgroundColor: theme.palette.background.paper,
 			borderRadius: 8,
@@ -184,8 +207,8 @@ const HomeScreen = () => {
 			transform: [{ scale: 0.97 }],
 		},
 		categoryImage: {
-			width: categoryCardWidth - 16,
-			height: categoryCardWidth - 16,
+			width: "100%",
+			aspectRatio: 1,
 			borderRadius: 6,
 			marginBottom: 6,
 			backgroundColor: theme.palette.grey[100],
@@ -228,17 +251,19 @@ const HomeScreen = () => {
 			fontWeight: "600",
 			fontSize: 12,
 		},
-		// Product grid
+		// Product grid - 2 columns
 		productsContainer: {
 			paddingHorizontal: 12,
 			paddingBottom: 24,
 		},
 		productsGrid: {
-			gap: 8,
-		},
-		productRow: {
+			flexDirection: "row",
+			flexWrap: "wrap",
 			justifyContent: "space-between",
-			gap: 8,
+		},
+		productWrapper: {
+			width: "48%",
+			marginBottom: 12,
 		},
 		// Empty state
 		emptyState: {
@@ -307,7 +332,7 @@ const HomeScreen = () => {
 											color="rgba(255,255,255,0.9)"
 										/>
 										<Text style={styles.promoStatText}>
-											{totalItems} {totalItems === 1 ? "item" : "items"}
+											{totalItems || 0} {(totalItems || 0) === 1 ? "item" : "items"}
 										</Text>
 									</View>
 									<View style={styles.promoStat}>
@@ -317,7 +342,7 @@ const HomeScreen = () => {
 											color="rgba(255,255,255,0.9)"
 										/>
 										<Text style={styles.promoStatText}>
-											KES {totalPrice.toLocaleString()}
+											KES {(totalPrice || 0).toLocaleString()}
 										</Text>
 									</View>
 								</View>
@@ -349,34 +374,85 @@ const HomeScreen = () => {
 							{/* Compact 3-Column Grid */}
 							<View style={styles.categoriesGrid}>
 								{categories.slice(0, 9).map((category, index) => (
-									<Pressable
+									<Animated.View
 										key={category._id}
-										style={({ pressed }) => [
-											styles.categoryCard,
-											pressed && styles.categoryCardPressed,
-										]}
-										onPress={() => handleCategoryPress(category)}
-										accessibilityRole="button"
-										accessibilityLabel={`Browse ${category.name} category`}
-										accessibilityHint="Tap to view products in this category"
+										entering={FadeInUp.delay(index * 50).duration(300).springify()}
+										style={{ width: categoryCardWidth }}
 									>
-										<Image
-											source={{ uri: category.image }}
-											style={styles.categoryImage}
-											contentFit="cover"
-											transition={200}
-											cachePolicy="memory-disk"
-										/>
-										<Text
-											style={styles.categoryName}
-											numberOfLines={2}
-											ellipsizeMode="tail"
+										<Pressable
+											style={({ pressed }) => [
+												styles.categoryCard,
+												pressed && styles.categoryCardPressed,
+											]}
+											onPress={() => handleCategoryPress(category)}
+											accessibilityRole="button"
+											accessibilityLabel={`Browse ${category.name} category`}
+											accessibilityHint="Tap to view products in this category"
 										>
-											{category.name}
-										</Text>
-									</Pressable>
+											<Image
+												source={{ uri: category.image }}
+												style={styles.categoryImage}
+												contentFit="cover"
+												transition={200}
+												cachePolicy="memory-disk"
+											/>
+											<Text
+												style={styles.categoryName}
+												numberOfLines={2}
+												ellipsizeMode="tail"
+											>
+												{category.name}
+											</Text>
+										</Pressable>
+									</Animated.View>
 								))}
 							</View>
+						</Animated.View>
+					)}
+
+					{/* Flash Sale Horizontal Carousel */}
+					{allProducts.products.length > 0 && (
+						<Animated.View entering={FadeInUp.delay(175).duration(300)}>
+							<View style={styles.sectionHeader}>
+								<Text style={styles.sectionTitle}>⚡ Flash Sale</Text>
+								<TouchableOpacity
+									style={styles.viewAllButton}
+									onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
+									activeOpacity={0.7}
+								>
+									<Text style={styles.viewAllText}>View All</Text>
+									<Ionicons
+										name="chevron-forward"
+										size={14}
+										color={theme.palette.primary.main}
+									/>
+								</TouchableOpacity>
+							</View>
+
+							<FlatList
+								ref={flashSaleRef}
+								data={allProducts.products.slice(0, 10)}
+								renderItem={({ item, index }) => (
+									<View style={{ width: width * 0.42, marginRight: 12 }}>
+										<ProductCard product={item} index={index} />
+									</View>
+								)}
+								keyExtractor={(item) => `flash-${item._id}`}
+								horizontal
+								showsHorizontalScrollIndicator={false}
+								contentContainerStyle={{ paddingHorizontal: 12 }}
+								snapToInterval={width * 0.42 + 12}
+								decelerationRate="fast"
+								pagingEnabled={false}
+								onScrollToIndexFailed={(info) => {
+									setTimeout(() => {
+										flashSaleRef.current?.scrollToIndex({
+											index: info.index,
+											animated: true,
+										});
+									}, 100);
+								}}
+							/>
 						</Animated.View>
 					)}
 
@@ -432,36 +508,11 @@ const HomeScreen = () => {
 						<View style={styles.productsContainer}>
 							{allProducts.products.length > 0 ? (
 								<View style={styles.productsGrid}>
-									{/* Render products in rows of 2 */}
-									{Array.from({
-										length: Math.ceil(allProducts.products.length / 2),
-									}).map((_, rowIndex) => {
-										const startIndex = rowIndex * 2;
-										const rowProducts = allProducts.products.slice(
-											startIndex,
-											startIndex + 2
-										);
-
-										return (
-											<View key={rowIndex} style={styles.productRow}>
-												{rowProducts.map((product, index) => (
-													<View
-														key={product._id}
-														style={{ flex: 1, maxWidth: "48.5%" }}
-													>
-														<ProductCard
-															product={product}
-															index={startIndex + index}
-														/>
-													</View>
-												))}
-												{/* Add spacer if odd number of products in last row */}
-												{rowProducts.length === 1 && (
-													<View style={{ flex: 1, maxWidth: "48.5%" }} />
-												)}
-											</View>
-										);
-									})}
+									{allProducts.products.map((product, index) => (
+										<View key={product._id} style={styles.productWrapper}>
+											<ProductCard product={product} index={index} />
+										</View>
+									))}
 								</View>
 							) : (
 								<View style={styles.emptyState}>

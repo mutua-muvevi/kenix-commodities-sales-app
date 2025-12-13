@@ -508,21 +508,21 @@ const ProfileScreen = () => {
 										<View style={[styles.statIconContainer, { backgroundColor: `${theme.palette.info.main}20` }]}>
 											<Ionicons name="cart" size={20} color={theme.palette.info.main} />
 										</View>
-										<Text style={styles.statValue}>{totalItems}</Text>
+										<Text style={styles.statValue}>{totalItems || 0}</Text>
 										<Text style={styles.statLabel}>Cart Items</Text>
 									</View>
 									<View style={styles.statItem}>
 										<View style={[styles.statIconContainer, { backgroundColor: `${theme.palette.success.main}20` }]}>
 											<Ionicons name="cash" size={20} color={theme.palette.success.main} />
 										</View>
-										<Text style={styles.statValue}>${totalPrice.toFixed(0)}</Text>
+										<Text style={styles.statValue}>KES {(totalPrice || 0).toFixed(0)}</Text>
 										<Text style={styles.statLabel}>Cart Value</Text>
 									</View>
 									<View style={styles.statItem}>
 										<View style={[styles.statIconContainer, { backgroundColor: `${theme.palette.error.main}20` }]}>
 											<Ionicons name="heart" size={20} color={theme.palette.error.main} />
 										</View>
-										<Text style={styles.statValue}>{favoriteCount}</Text>
+										<Text style={styles.statValue}>{favoriteCount || 0}</Text>
 										<Text style={styles.statLabel}>Favorites</Text>
 									</View>
 								</View>

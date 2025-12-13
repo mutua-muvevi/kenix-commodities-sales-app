@@ -189,21 +189,6 @@ const LoginScreen = () => {
 			marginTop: theme.spacing.md,
 			marginBottom: theme.spacing.lg,
 		},
-		divider: {
-			flexDirection: "row",
-			alignItems: "center",
-			marginVertical: theme.spacing.xl,
-		},
-		dividerLine: {
-			flex: 1,
-			height: 1,
-			backgroundColor: theme.palette.divider,
-		},
-		dividerText: {
-			...theme.typography.body2,
-			color: theme.palette.text.secondary,
-			marginHorizontal: theme.spacing.md,
-		},
 		demoCredentials: {
 			backgroundColor: theme.palette.mode === "dark" ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.03)",
 			borderRadius: theme.borderRadius.md,
@@ -223,21 +208,13 @@ const LoginScreen = () => {
 			color: theme.palette.text.secondary,
 			lineHeight: 18,
 		},
-		footer: {
-			flexDirection: "row",
-			justifyContent: "center",
-			alignItems: "center",
-			paddingVertical: theme.spacing.xl,
-		},
-		footerText: {
-			...theme.typography.body2,
+		footerNote: {
+			...theme.typography.caption,
 			color: theme.palette.text.secondary,
-		},
-		footerLink: {
-			...theme.typography.body2,
-			color: theme.palette.primary.main,
-			fontWeight: "600",
-			marginLeft: theme.spacing.xs,
+			textAlign: "center",
+			paddingHorizontal: theme.spacing.lg,
+			paddingVertical: theme.spacing.xl,
+			lineHeight: 18,
 		},
 	});
 
@@ -432,30 +409,12 @@ const LoginScreen = () => {
 								</View>
 							</Animated.View>
 
-							{/* Divider */}
-							<Animated.View entering={FadeInUp.delay(400).springify()}>
-								<View style={styles.divider}>
-									<View style={styles.dividerLine} />
-									<Text style={styles.dividerText}>or</Text>
-									<View style={styles.dividerLine} />
-								</View>
-							</Animated.View>
-
-							{/* Footer - Create Account Link */}
-							<Animated.View entering={FadeInDown.delay(500).springify()}>
-								<View style={styles.footer}>
-									<Text style={styles.footerText}>Don't have an account?</Text>
-									<TouchableOpacity
-										onPress={() => {
-											Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-											router.push("/auth/register" as any);
-										}}
-										accessibilityRole="button"
-										accessibilityLabel="Create account"
-									>
-										<Text style={styles.footerLink}>Create Account</Text>
-									</TouchableOpacity>
-								</View>
+							{/* Footer Note - Registration Disabled */}
+							<Animated.View entering={FadeInDown.delay(400).springify()}>
+								<Text style={styles.footerNote}>
+									New shop accounts can only be created by administrators or sales agents.{"\n"}
+									Contact your sales representative for assistance.
+								</Text>
 							</Animated.View>
 						</View>
 					</Container>
