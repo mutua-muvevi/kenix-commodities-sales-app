@@ -1,76 +1,106 @@
-/**
- * Theme Store Slice
- * Manages theme preferences and dark mode
- */
+// store/slices/theme/theme-store.ts - Theme store with persistence and system theme detection
+import { create } from "zustand";
+import { persist, createJSONStorage } from "zustand/middleware";
+import { devtools } from "zustand/middleware";
+import { logger } from "../../middleware/logger";
+import { secureStorage } from "../../middleware/persist";
+import { createTheme } from "../../../theme";
+import { ThemeType } from "../../../theme/types/theme";
 
-import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
-import { asyncStorage } from '../../middleware/persist';
-import { actionLogger } from '../../middleware/logger';
-
-export type ThemeMode = 'light' | 'dark' | 'system';
+export type ThemeMode = "light" | "dark" | "auto";
 
 interface ThemeState {
-  // State
-  mode: ThemeMode;
-  isDark: boolean;
-
-  // Actions
-  setTheme: (mode: ThemeMode) => void;
-  toggleTheme: () => void;
-  setIsDark: (isDark: boolean) => void;
+	themeMode: ThemeMode;
+	theme: ThemeType;
+	isDark: boolean;
 }
 
-export const useThemeStore = create<ThemeState>()(
-  persist(
-    (set, get) => ({
-      // Initial State
-      mode: 'system',
-      isDark: false,
+interface ThemeStore extends ThemeState {
+	setThemeMode: (mode: ThemeMode) => void;
+	toggleTheme: () => void;
+	initializeTheme: (systemColorScheme?: "light" | "dark") => void;
+	updateSystemTheme: (systemColorScheme: "light" | "dark") => void;
+}
 
-      // Set Theme
-      setTheme: (mode: ThemeMode) => {
-        actionLogger('ThemeStore', 'setTheme', mode);
-        set({ mode });
+// Get initial theme without using hooks
+const getInitialTheme = (): ThemeState => {
+	return {
+		themeMode: "auto",
+		isDark: false, // Default to light, will be updated on initialization
+		theme: createTheme({ mode: "light" }),
+	};
+};
 
-        // If mode is light or dark, update isDark immediately
-        if (mode === 'light') {
-          set({ isDark: false });
-        } else if (mode === 'dark') {
-          set({ isDark: true });
-        }
-        // If system, isDark should be set by system detection
-      },
+export const useThemeStore = create<ThemeStore>()(
+	devtools(
+		persist(
+			logger(
+				(set, get) => ({
+					...getInitialTheme(),
 
-      // Toggle Theme
-      toggleTheme: () => {
-        actionLogger('ThemeStore', 'toggleTheme');
-        const { mode } = get();
+					setThemeMode: (mode) => {
+						let isDark: boolean;
 
-        // If system mode, switch to explicit light/dark
-        if (mode === 'system') {
-          const { isDark } = get();
-          const newMode = isDark ? 'light' : 'dark';
-          set({ mode: newMode, isDark: !isDark });
-        } else {
-          // Toggle between light and dark
-          const newMode = mode === 'light' ? 'dark' : 'light';
-          set({ mode: newMode, isDark: newMode === 'dark' });
-        }
-      },
+						if (mode === "auto") {
+							// Keep current isDark state for auto mode
+							isDark = get().isDark;
+						} else {
+							isDark = mode === "dark";
+						}
 
-      // Set Is Dark (used by system theme detection)
-      setIsDark: (isDark: boolean) => {
-        actionLogger('ThemeStore', 'setIsDark', isDark);
-        set({ isDark });
-      },
-    }),
-    {
-      name: 'sales-agent-theme',
-      storage: asyncStorage,
-      partialize: (state) => ({
-        mode: state.mode,
-      }),
-    }
-  )
+						set({
+							themeMode: mode,
+							isDark,
+							theme: createTheme({ mode: isDark ? "dark" : "light" }),
+						});
+					},
+
+					toggleTheme: () => {
+						const { themeMode } = get();
+						const nextMode: ThemeMode =
+							themeMode === "auto" ? "light" : themeMode === "light" ? "dark" : "auto";
+
+						get().setThemeMode(nextMode);
+					},
+
+					initializeTheme: (systemColorScheme = "light") => {
+						const { themeMode } = get();
+
+						if (themeMode === "auto") {
+							const isDark = systemColorScheme === "dark";
+							set({
+								isDark,
+								theme: createTheme({ mode: isDark ? "dark" : "light" }),
+							});
+						} else {
+							// Re-apply the current theme mode to ensure consistency
+							get().setThemeMode(themeMode);
+						}
+					},
+
+					updateSystemTheme: (systemColorScheme) => {
+						const { themeMode } = get();
+
+						// Only update if we're in auto mode
+						if (themeMode === "auto") {
+							const isDark = systemColorScheme === "dark";
+							set({
+								isDark,
+								theme: createTheme({ mode: isDark ? "dark" : "light" }),
+							});
+						}
+					},
+				}),
+				"theme-store",
+			),
+			{
+				name: "sales-agent-theme-store",
+				storage: createJSONStorage(() => secureStorage),
+				partialize: (state) => ({
+					themeMode: state.themeMode,
+				}),
+			},
+		),
+		{ name: "theme-store" },
+	),
 );
