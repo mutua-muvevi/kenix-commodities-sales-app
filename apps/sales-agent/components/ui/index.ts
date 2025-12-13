@@ -42,6 +42,15 @@ export type { LoadingSpinnerProps } from './LoadingSpinner';
 export { Avatar } from './Avatar';
 export type { AvatarProps } from './Avatar';
 
+// SearchBar Component
+export { SearchBar } from './SearchBar';
+
+// DataSourceIndicator Component
+export { DataSourceIndicator } from './DataSourceIndicator';
+
+// FloatingCartButton Component
+export { FloatingCartButton } from './FloatingCartButton';
+
 /**
  * Default export object containing all components
  */
@@ -54,4 +63,7 @@ export default {
   EmptyState,
   LoadingSpinner,
   Avatar,
+  SearchBar,
+  DataSourceIndicator,
+  FloatingCartButton,
 };

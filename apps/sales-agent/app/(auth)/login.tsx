@@ -93,6 +93,15 @@ export default function LoginScreen() {
               <Text style={styles.loginButtonText}>Login</Text>
             )}
           </TouchableOpacity>
+
+          {/* DEV MODE: Skip Login Button */}
+          <TouchableOpacity
+            style={styles.skipButton}
+            onPress={() => router.replace('/(tabs)/dashboard')}
+          >
+            <Text style={styles.skipButtonText}>⚡ Skip Login (Dev Mode)</Text>
+            <Text style={styles.skipButtonSubtext}>Bypass authentication for UI/UX testing</Text>
+          </TouchableOpacity>
         </View>
 
         {/* Footer */}
@@ -192,6 +201,26 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  skipButton: {
+    backgroundColor: '#f3f4f6',
+    paddingVertical: 14,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginTop: 16,
+    borderWidth: 2,
+    borderColor: '#d1d5db',
+    borderStyle: 'dashed',
+  },
+  skipButtonText: {
+    color: '#374151',
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  skipButtonSubtext: {
+    color: '#9ca3af',
+    fontSize: 11,
+    marginTop: 4,
   },
   footer: {
     alignItems: 'center',
