@@ -1,407 +1,183 @@
-/**
- * Button Component
- * A highly customizable button component with animations, haptic feedback, and loading states.
- *
- * Features:
- * - Multiple variants (primary, secondary, outlined, text, danger)
- * - Three sizes (small, medium, large)
- * - Loading state with spinner
- * - Disabled state
- * - Icon support (left/right)
- * - Full width option
- * - Press animations via react-native-reanimated
- * - Haptic feedback
- * - Theme-aware styling
- *
- * @example
- * ```tsx
- * <Button
- *   variant="primary"
- *   size="large"
- *   leftIcon={<Ionicons name="add" size={20} color="white" />}
- *   onPress={() => console.log('Pressed')}
- * >
- *   Add Shop
- * </Button>
- * ```
- */
+// components/ui/Button.tsx - Complete component with ES6+ arrow functions
+import React from "react";
+import { TouchableOpacity, Text, StyleSheet, ViewStyle, TextStyle, ActivityIndicator } from "react-native";
+import Animated, { useAnimatedStyle, useSharedValue, withSpring, withTiming, runOnJS } from "react-native-reanimated";
+import { useTheme } from "../../hooks/useTheme";
+import { LinearGradient } from "expo-linear-gradient";
 
-import React, { useCallback } from 'react';
-import {
-  TouchableOpacity,
-  ActivityIndicator,
-  StyleSheet,
-  ViewStyle,
-  TextStyle,
-} from 'react-native';
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
-  withTiming,
-} from 'react-native-reanimated';
-import * as Haptics from 'expo-haptics';
-import { theme } from '@/theme';
+const AnimatedTouchable = Animated.createAnimatedComponent(TouchableOpacity);
 
-const AnimatedTouchableOpacity = Animated.createAnimatedComponent(TouchableOpacity);
-
-export interface ButtonProps {
-  /**
-   * Button variant style
-   * @default 'primary'
-   */
-  variant?: 'primary' | 'secondary' | 'outlined' | 'text' | 'danger';
-
-  /**
-   * Button size
-   * @default 'medium'
-   */
-  size?: 'small' | 'medium' | 'large';
-
-  /**
-   * Shows loading spinner and disables interaction
-   * @default false
-   */
-  loading?: boolean;
-
-  /**
-   * Disables button interaction
-   * @default false
-   */
-  disabled?: boolean;
-
-  /**
-   * Icon to display on the left side
-   */
-  leftIcon?: React.ReactNode;
-
-  /**
-   * Icon to display on the right side
-   */
-  rightIcon?: React.ReactNode;
-
-  /**
-   * Makes button take full width of container
-   * @default false
-   */
-  fullWidth?: boolean;
-
-  /**
-   * Press handler
-   */
-  onPress: () => void;
-
-  /**
-   * Button label/content
-   */
-  children: React.ReactNode;
-
-  /**
-   * Custom container style
-   */
-  style?: ViewStyle;
-
-  /**
-   * Custom text style
-   */
-  textStyle?: TextStyle;
-
-  /**
-   * Accessibility label
-   */
-  accessibilityLabel?: string;
-
-  /**
-   * Test ID for testing
-   */
-  testID?: string;
+interface ButtonProps {
+	title: string;
+	variant?: "primary" | "secondary" | "outlined" | "text" | "gradient";
+	size?: "small" | "medium" | "large";
+	disabled?: boolean;
+	loading?: boolean;
+	onPress?: () => void;
+	style?: ViewStyle;
+	textStyle?: TextStyle;
+	icon?: React.ReactNode;
+	fullWidth?: boolean;
 }
 
-/**
- * Button Component
- */
 export const Button: React.FC<ButtonProps> = ({
-  variant = 'primary',
-  size = 'medium',
-  loading = false,
-  disabled = false,
-  leftIcon,
-  rightIcon,
-  fullWidth = false,
-  onPress,
-  children,
-  style,
-  textStyle,
-  accessibilityLabel,
-  testID,
+	title,
+	variant = "primary",
+	size = "medium",
+	disabled = false,
+	loading = false,
+	onPress,
+	style,
+	textStyle,
+	icon,
+	fullWidth = false,
 }) => {
-  // Animation values
-  const scale = useSharedValue(1);
-  const opacity = useSharedValue(1);
+	const { theme } = useTheme();
+	const scale = useSharedValue(1);
+	const opacity = useSharedValue(1);
 
-  // Handle press in
-  const handlePressIn = useCallback(() => {
-    if (disabled || loading) return;
+	const handlePressIn = () => {
+		scale.value = withSpring(0.96);
+		opacity.value = withTiming(0.8);
+	};
 
-    // Haptic feedback
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+	const handlePressOut = () => {
+		scale.value = withSpring(1);
+		opacity.value = withTiming(1);
+	};
 
-    // Scale down animation
-    scale.value = withSpring(0.95, {
-      damping: 15,
-      stiffness: 400,
-    });
+	const handlePress = () => {
+		if (onPress && !disabled && !loading) {
+			runOnJS(onPress)();
+		}
+	};
 
-    opacity.value = withTiming(0.8, { duration: 150 });
-  }, [disabled, loading, scale, opacity]);
+	const animatedStyle = useAnimatedStyle(() => ({
+		transform: [{ scale: scale.value }],
+		opacity: opacity.value,
+	}));
 
-  // Handle press out
-  const handlePressOut = useCallback(() => {
-    if (disabled || loading) return;
+	const getButtonStyle = (): ViewStyle => {
+		const sizeStyles = {
+			small: { paddingVertical: theme.spacing.sm, paddingHorizontal: theme.spacing.md, minHeight: 36 },
+			medium: { paddingVertical: theme.spacing.md, paddingHorizontal: theme.spacing.lg, minHeight: 44 },
+			large: { paddingVertical: theme.spacing.lg, paddingHorizontal: theme.spacing.xl, minHeight: 52 },
+		};
 
-    // Scale back animation
-    scale.value = withSpring(1, {
-      damping: 15,
-      stiffness: 400,
-    });
+		const baseStyle: ViewStyle = {
+			borderRadius: theme.borderRadius.lg,
+			alignItems: "center",
+			justifyContent: "center",
+			flexDirection: "row",
+			...sizeStyles[size],
+			...(fullWidth && { width: "100%" }),
+		};
 
-    opacity.value = withTiming(1, { duration: 150 });
-  }, [disabled, loading, scale, opacity]);
+		if (disabled || loading) {
+			baseStyle.opacity = 0.6;
+		}
 
-  // Handle press
-  const handlePress = useCallback(() => {
-    if (disabled || loading) return;
+		return baseStyle;
+	};
 
-    // Medium haptic feedback on press
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    onPress();
-  }, [disabled, loading, onPress]);
+	const getTextStyle = (): TextStyle => {
+		const baseTextStyle = { ...theme.typography.button };
 
-  // Animated style
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-    opacity: opacity.value,
-  }));
+		const textColors = {
+			primary: theme.palette.primary.contrastText,
+			secondary: theme.palette.secondary.contrastText,
+			outlined: theme.palette.primary.main,
+			text: theme.palette.primary.main,
+			gradient: theme.palette.common.white,
+		};
 
-  // Get variant styles
-  const getVariantStyles = (): {
-    container: ViewStyle;
-    text: TextStyle;
-  } => {
-    const baseStyles = {
-      container: {} as ViewStyle,
-      text: {} as TextStyle,
-    };
+		return {
+			...baseTextStyle,
+			color: textColors[variant],
+			fontWeight: "600",
+		};
+	};
 
-    switch (variant) {
-      case 'primary':
-        return {
-          container: {
-            backgroundColor: theme.palette.primary.main,
-            ...theme.shadows.z4,
-          },
-          text: {
-            color: theme.palette.primary.contrastText,
-          },
-        };
+	const getBackgroundColor = () => {
+		const backgrounds = {
+			primary: theme.palette.primary.main,
+			secondary: theme.palette.secondary.main,
+			outlined: "transparent",
+			text: "transparent",
+			gradient: "transparent",
+		};
 
-      case 'secondary':
-        return {
-          container: {
-            backgroundColor: theme.palette.secondary.main,
-            ...theme.shadows.z4,
-          },
-          text: {
-            color: theme.palette.secondary.contrastText,
-          },
-        };
+		return backgrounds[variant];
+	};
 
-      case 'outlined':
-        return {
-          container: {
-            backgroundColor: 'transparent',
-            borderWidth: 1.5,
-            borderColor: theme.palette.primary.main,
-          },
-          text: {
-            color: theme.palette.primary.main,
-          },
-        };
+	const getBorderStyle = () => {
+		if (variant === "outlined") {
+			return {
+				borderWidth: 2,
+				borderColor: theme.palette.primary.main,
+			};
+		}
+		return {};
+	};
 
-      case 'text':
-        return {
-          container: {
-            backgroundColor: 'transparent',
-          },
-          text: {
-            color: theme.palette.primary.main,
-          },
-        };
+	const renderButtonContent = () => (
+		<>
+			{loading ? (
+				<ActivityIndicator
+					size="small"
+					color={
+						variant === "outlined" || variant === "text"
+							? theme.palette.primary.main
+							: theme.palette.common.white
+					}
+				/>
+			) : (
+				<>
+					{icon && icon}
+					<Text style={[getTextStyle(), textStyle, icon && { marginLeft: theme.spacing.sm }]}>{title}</Text>
+				</>
+			)}
+		</>
+	);
 
-      case 'danger':
-        return {
-          container: {
-            backgroundColor: theme.palette.error.main,
-            ...theme.shadows.z4,
-          },
-          text: {
-            color: theme.palette.error.contrastText,
-          },
-        };
+	if (variant === "gradient") {
+		return (
+			<AnimatedTouchable
+				style={[animatedStyle, getButtonStyle(), style]}
+				onPressIn={handlePressIn}
+				onPressOut={handlePressOut}
+				onPress={handlePress}
+				activeOpacity={1}
+				disabled={disabled || loading}
+			>
+				<LinearGradient
+					colors={[theme.palette.primary.main, theme.palette.primary.dark]}
+					start={{ x: 0, y: 0 }}
+					end={{ x: 1, y: 1 }}
+					style={[getButtonStyle(), { margin: 0 }]}
+				>
+					{renderButtonContent()}
+				</LinearGradient>
+			</AnimatedTouchable>
+		);
+	}
 
-      default:
-        return baseStyles;
-    }
-  };
-
-  // Get size styles
-  const getSizeStyles = (): {
-    container: ViewStyle;
-    text: TextStyle;
-    iconSize: number;
-  } => {
-    switch (size) {
-      case 'small':
-        return {
-          container: {
-            paddingVertical: theme.spacing.xs,
-            paddingHorizontal: theme.spacing.md,
-            minHeight: 36,
-          },
-          text: {
-            ...theme.typography.button,
-            fontSize: 12,
-          },
-          iconSize: 16,
-        };
-
-      case 'large':
-        return {
-          container: {
-            paddingVertical: theme.spacing.md,
-            paddingHorizontal: theme.spacing.xl,
-            minHeight: 54,
-          },
-          text: {
-            ...theme.typography.button,
-            fontSize: 16,
-          },
-          iconSize: 24,
-        };
-
-      case 'medium':
-      default:
-        return {
-          container: {
-            paddingVertical: theme.spacing.sm,
-            paddingHorizontal: theme.spacing.lg,
-            minHeight: 44,
-          },
-          text: {
-            ...theme.typography.button,
-          },
-          iconSize: 20,
-        };
-    }
-  };
-
-  const variantStyles = getVariantStyles();
-  const sizeStyles = getSizeStyles();
-
-  // Disabled style
-  const disabledStyle: ViewStyle = (disabled || loading)
-    ? {
-        backgroundColor: theme.palette.action.disabledBackground,
-        opacity: theme.palette.action.disabledOpacity,
-        ...theme.shadows.none,
-      }
-    : {};
-
-  const disabledTextStyle: TextStyle = (disabled || loading)
-    ? {
-        color: theme.palette.text.disabled,
-      }
-    : {};
-
-  return (
-    <AnimatedTouchableOpacity
-      style={[
-        styles.container,
-        variantStyles.container,
-        sizeStyles.container,
-        fullWidth && styles.fullWidth,
-        disabledStyle,
-        animatedStyle,
-        style,
-      ]}
-      onPress={handlePress}
-      onPressIn={handlePressIn}
-      onPressOut={handlePressOut}
-      disabled={disabled || loading}
-      activeOpacity={0.8}
-      accessibilityLabel={accessibilityLabel}
-      accessibilityRole="button"
-      accessibilityState={{
-        disabled: disabled || loading,
-        busy: loading,
-      }}
-      testID={testID}
-    >
-      {loading && (
-        <ActivityIndicator
-          size="small"
-          color={variantStyles.text.color}
-          style={styles.loader}
-        />
-      )}
-
-      {!loading && leftIcon && (
-        <Animated.View style={styles.leftIcon}>{leftIcon}</Animated.View>
-      )}
-
-      <Animated.Text
-        style={[
-          styles.text,
-          variantStyles.text,
-          sizeStyles.text,
-          disabledTextStyle,
-          textStyle,
-        ]}
-        numberOfLines={1}
-      >
-        {children}
-      </Animated.Text>
-
-      {!loading && rightIcon && (
-        <Animated.View style={styles.rightIcon}>{rightIcon}</Animated.View>
-      )}
-    </AnimatedTouchableOpacity>
-  );
+	return (
+		<AnimatedTouchable
+			style={[
+				animatedStyle,
+				getButtonStyle(),
+				{ backgroundColor: getBackgroundColor() },
+				getBorderStyle(),
+				style,
+			]}
+			onPressIn={handlePressIn}
+			onPressOut={handlePressOut}
+			onPress={handlePress}
+			activeOpacity={1}
+			disabled={disabled || loading}
+		>
+			{renderButtonContent()}
+		</AnimatedTouchable>
+	);
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: theme.borderRadius.md,
-    gap: theme.spacing.xs,
-  },
-  fullWidth: {
-    width: '100%',
-  },
-  text: {
-    textAlign: 'center',
-  },
-  loader: {
-    marginRight: theme.spacing.xs,
-  },
-  leftIcon: {
-    marginRight: theme.spacing.xs,
-  },
-  rightIcon: {
-    marginLeft: theme.spacing.xs,
-  },
-});
-
-export default Button;

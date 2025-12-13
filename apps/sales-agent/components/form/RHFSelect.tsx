@@ -1,538 +1,354 @@
-/**
- * RHFSelect Component
- * React Hook Form integrated select/dropdown field
- *
- * Features:
- * - Connected to react-hook-form via useController
- * - Modal-based selection with FlatList
- * - Auto-displays validation errors
- * - Search functionality
- * - Custom rendering support
- *
- * Usage:
- * ```tsx
- * <RHFSelect
- *   name="category"
- *   label="Shop Category"
- *   placeholder="Select category"
- *   options={[
- *     { label: 'Retail', value: 'retail' },
- *     { label: 'Wholesale', value: 'wholesale' },
- *   ]}
- *   rules={{ required: 'Category is required' }}
- * />
- * ```
- */
+// components/form/RHFSelect.tsx
+import React, { useState } from "react";
+import { View, Text, TouchableOpacity, StyleSheet, Modal, FlatList, ViewStyle } from "react-native";
+import { Controller, useFormContext } from "react-hook-form";
+import { Ionicons } from "@expo/vector-icons";
+import Animated, { useAnimatedStyle, useSharedValue, withSpring } from "react-native-reanimated";
+import { useTheme } from "../../hooks/useTheme";
 
-import React from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  Pressable,
-  Modal,
-  FlatList,
-  TextInput,
-  TouchableOpacity,
-} from 'react-native';
-import { useController, RegisterOptions, useFormContext } from 'react-hook-form';
-import { theme } from '../../theme';
-
-/**
- * Select option interface
- */
-export interface SelectOption {
-  label: string;
-  value: string;
-  disabled?: boolean;
+interface SelectOption {
+	label: string;
+	value: string | number;
+	disabled?: boolean;
+	icon?: string;
 }
 
-/**
- * RHFSelect Props
- */
-export interface RHFSelectProps {
-  /**
-   * Field name (must match form schema)
-   */
-  name: string;
-
-  /**
-   * Select label
-   */
-  label?: string;
-
-  /**
-   * Placeholder text
-   */
-  placeholder?: string;
-
-  /**
-   * Select options
-   */
-  options: SelectOption[];
-
-  /**
-   * Validation rules
-   */
-  rules?: RegisterOptions;
-
-  /**
-   * Disabled state
-   */
-  disabled?: boolean;
-
-  /**
-   * Enable search
-   */
-  searchable?: boolean;
-
-  /**
-   * Search placeholder
-   */
-  searchPlaceholder?: string;
-
-  /**
-   * Helper text
-   */
-  helperText?: string;
-
-  /**
-   * Test ID for testing
-   */
-  testID?: string;
-
-  /**
-   * Custom render for selected value
-   */
-  renderValue?: (value: string, option?: SelectOption) => React.ReactNode;
-
-  /**
-   * Custom render for option
-   */
-  renderOption?: (option: SelectOption, isSelected: boolean) => React.ReactNode;
+interface RHFSelectProps {
+	name: string;
+	label?: string;
+	placeholder?: string;
+	helperText?: string;
+	options: SelectOption[];
+	multiple?: boolean;
+	disabled?: boolean;
+	style?: ViewStyle;
+	required?: boolean;
+	searchable?: boolean;
+	leftIcon?: string;
 }
 
-/**
- * Chevron Down Icon
- */
-const ChevronDownIcon = ({ color = theme.palette.text.secondary }: { color?: string }) => (
-  <View style={styles.chevronIcon}>
-    <Text style={[styles.chevronText, { color }]}>▼</Text>
-  </View>
-);
+export const RHFSelect: React.FC<RHFSelectProps> = ({
+	name,
+	label,
+	placeholder = "Select an option",
+	helperText,
+	options,
+	multiple = false,
+	disabled = false,
+	style,
+	required = false,
+	searchable = false,
+	leftIcon,
+}) => {
+	const { theme } = useTheme();
+	const { control } = useFormContext();
+	const [isOpen, setIsOpen] = useState(false);
+	const [searchQuery, setSearchQuery] = useState("");
+	const scale = useSharedValue(1);
 
-/**
- * Check Icon
- */
-const CheckIcon = ({ color = theme.palette.primary.main }: { color?: string }) => (
-  <View style={styles.checkIcon}>
-    <Text style={[styles.checkText, { color }]}>✓</Text>
-  </View>
-);
+	const handlePress = () => {
+		if (!disabled) {
+			setIsOpen(true);
+			scale.value = withSpring(1.02);
+		}
+	};
 
-/**
- * RHFSelect Component
- */
-export function RHFSelect({
-  name,
-  label,
-  placeholder = 'Select an option',
-  options,
-  rules,
-  disabled = false,
-  searchable = false,
-  searchPlaceholder = 'Search...',
-  helperText,
-  testID,
-  renderValue,
-  renderOption,
-}: RHFSelectProps) {
-  const { control } = useFormContext();
+	const handleClose = () => {
+		setIsOpen(false);
+		setSearchQuery("");
+		scale.value = withSpring(1);
+	};
 
-  const {
-    field: { onChange, value, ref },
-    fieldState: { error, isTouched },
-  } = useController({
-    name,
-    control,
-    rules,
-    defaultValue: '',
-  });
+	const handleSelect = (option: SelectOption, field: any) => {
+		if (multiple) {
+			const currentValues = field.value || [];
+			const isSelected = currentValues.some((item: any) => item.value === option.value);
 
-  const [isOpen, setIsOpen] = React.useState(false);
-  const [searchQuery, setSearchQuery] = React.useState('');
+			if (isSelected) {
+				field.onChange(currentValues.filter((item: any) => item.value !== option.value));
+			} else {
+				field.onChange([...currentValues, option]);
+			}
+		} else {
+			field.onChange(option);
+			handleClose();
+		}
+	};
 
-  const hasError = Boolean(error && isTouched);
+	const getDisplayText = (value: any) => {
+		if (!value) return placeholder;
 
-  /**
-   * Get selected option
-   */
-  const selectedOption = React.useMemo(
-    () => options.find((opt) => opt.value === value),
-    [options, value]
-  );
+		if (multiple) {
+			if (!value.length) return placeholder;
+			if (value.length === 1) return value[0].label;
+			return `${value.length} items selected`;
+		}
 
-  /**
-   * Filter options based on search
-   */
-  const filteredOptions = React.useMemo(() => {
-    if (!searchable || !searchQuery.trim()) {
-      return options;
-    }
-    const query = searchQuery.toLowerCase();
-    return options.filter((option) =>
-      option.label.toLowerCase().includes(query)
-    );
-  }, [options, searchQuery, searchable]);
+		return value.label || placeholder;
+	};
 
-  /**
-   * Handle option select
-   */
-  const handleSelect = React.useCallback(
-    (optionValue: string) => {
-      onChange(optionValue);
-      setIsOpen(false);
-      setSearchQuery('');
-    },
-    [onChange]
-  );
+	const filteredOptions = searchable
+		? options.filter((option) => option.label.toLowerCase().includes(searchQuery.toLowerCase()))
+		: options;
 
-  /**
-   * Handle modal close
-   */
-  const handleClose = React.useCallback(() => {
-    setIsOpen(false);
-    setSearchQuery('');
-  }, []);
+	const animatedStyle = useAnimatedStyle(() => ({
+		transform: [{ scale: scale.value }],
+	}));
 
-  /**
-   * Render option item
-   */
-  const renderOptionItem = ({ item }: { item: SelectOption }) => {
-    const isSelected = item.value === value;
-    const isDisabled = item.disabled || disabled;
+	const styles = StyleSheet.create({
+		container: {
+			marginBottom: theme.spacing.sm,
+		},
+		labelContainer: {
+			flexDirection: "row",
+			marginBottom: theme.spacing.xs,
+		},
+		label: {
+			...theme.typography.body2,
+			color: theme.palette.text.primary,
+			fontWeight: "500",
+		},
+		required: {
+			color: theme.palette.error.main,
+			marginLeft: 2,
+		},
+		selectContainer: {
+			flexDirection: "row",
+			alignItems: "center",
+			backgroundColor: theme.palette.background.surface,
+			borderWidth: 1,
+			borderColor: theme.palette.grey[300],
+			borderRadius: theme.borderRadius.sm,
+			paddingHorizontal: theme.spacing.sm,
+			paddingVertical: theme.spacing.xs,
+			minHeight: 44,
+		},
+		selectContainerError: {
+			borderColor: theme.palette.error.main,
+		},
+		selectContainerDisabled: {
+			backgroundColor: theme.palette.grey[100],
+			opacity: 0.6,
+		},
+		leftIconContainer: {
+			marginRight: theme.spacing.xs,
+		},
+		selectText: {
+			flex: 1,
+			...theme.typography.body1,
+			color: theme.palette.text.primary,
+			fontSize: 14,
+		},
+		placeholderText: {
+			color: theme.palette.text.secondary,
+		},
+		rightIconContainer: {
+			marginLeft: theme.spacing.xs,
+		},
+		helperText: {
+			...theme.typography.caption,
+			color: theme.palette.text.secondary,
+			marginTop: theme.spacing.xs,
+			fontSize: 11,
+		},
+		errorText: {
+			color: theme.palette.error.main,
+		},
+		modal: {
+			flex: 1,
+			backgroundColor: "rgba(0, 0, 0, 0.5)",
+			justifyContent: "center",
+			padding: theme.spacing.md,
+		},
+		modalContent: {
+			backgroundColor: theme.palette.background.paper,
+			borderRadius: theme.borderRadius.md,
+			maxHeight: "70%",
+			...theme.shadows.z8,
+		},
+		modalHeader: {
+			flexDirection: "row",
+			alignItems: "center",
+			justifyContent: "space-between",
+			padding: theme.spacing.md,
+			borderBottomWidth: 1,
+			borderBottomColor: theme.palette.divider,
+		},
+		modalTitle: {
+			...theme.typography.h6,
+			color: theme.palette.text.primary,
+		},
+		searchContainer: {
+			padding: theme.spacing.sm,
+			borderBottomWidth: 1,
+			borderBottomColor: theme.palette.divider,
+		},
+		searchInput: {
+			backgroundColor: theme.palette.background.surface,
+			borderRadius: theme.borderRadius.sm,
+			paddingHorizontal: theme.spacing.sm,
+			paddingVertical: theme.spacing.xs,
+			...theme.typography.body1,
+			color: theme.palette.text.primary,
+		},
+		optionsList: {
+			maxHeight: 300,
+		},
+		optionItem: {
+			flexDirection: "row",
+			alignItems: "center",
+			padding: theme.spacing.md,
+			borderBottomWidth: 1,
+			borderBottomColor: theme.palette.divider,
+		},
+		optionItemDisabled: {
+			opacity: 0.5,
+		},
+		optionIcon: {
+			marginRight: theme.spacing.sm,
+		},
+		optionText: {
+			flex: 1,
+			...theme.typography.body1,
+			color: theme.palette.text.primary,
+		},
+		selectedIndicator: {
+			marginLeft: theme.spacing.sm,
+		},
+		multipleActions: {
+			flexDirection: "row",
+			justifyContent: "space-between",
+			padding: theme.spacing.md,
+			borderTopWidth: 1,
+			borderTopColor: theme.palette.divider,
+		},
+		clearButton: {
+			padding: theme.spacing.sm,
+		},
+		doneButton: {
+			backgroundColor: theme.palette.primary.main,
+			paddingHorizontal: theme.spacing.lg,
+			paddingVertical: theme.spacing.sm,
+			borderRadius: theme.borderRadius.sm,
+		},
+		doneButtonText: {
+			color: theme.palette.primary.contrastText,
+			fontWeight: "600",
+		},
+	});
 
-    if (renderOption) {
-      return (
-        <TouchableOpacity
-          onPress={() => !isDisabled && handleSelect(item.value)}
-          disabled={isDisabled}
-          style={[
-            styles.optionItem,
-            isSelected && styles.optionItemSelected,
-            isDisabled && styles.optionItemDisabled,
-          ]}
-        >
-          {renderOption(item, isSelected)}
-        </TouchableOpacity>
-      );
-    }
+	const renderOption = ({ item }: { item: SelectOption }) => (
+		<TouchableOpacity
+			style={[styles.optionItem, item.disabled && styles.optionItemDisabled]}
+			onPress={() => !item.disabled && handleSelect(item, field)}
+			disabled={item.disabled}
+		>
+			{item.icon && (
+				<Ionicons
+					name={item.icon as any}
+					size={20}
+					color={theme.palette.primary.main}
+					style={styles.optionIcon}
+				/>
+			)}
+			<Text style={styles.optionText}>{item.label}</Text>
+			{/* Selection indicator logic would go here based on field value */}
+		</TouchableOpacity>
+	);
 
-    return (
-      <TouchableOpacity
-        onPress={() => !isDisabled && handleSelect(item.value)}
-        disabled={isDisabled}
-        style={[
-          styles.optionItem,
-          isSelected && styles.optionItemSelected,
-          isDisabled && styles.optionItemDisabled,
-        ]}
-        testID={`${testID}-option-${item.value}`}
-      >
-        <Text
-          style={[
-            styles.optionText,
-            isSelected && styles.optionTextSelected,
-            isDisabled && styles.optionTextDisabled,
-          ]}
-        >
-          {item.label}
-        </Text>
-        {isSelected && <CheckIcon />}
-      </TouchableOpacity>
-    );
-  };
+	return (
+		<Controller
+			name={name}
+			control={control}
+			render={({ field, fieldState: { error } }) => (
+				<Animated.View style={[styles.container, animatedStyle, style]}>
+					{label && (
+						<View style={styles.labelContainer}>
+							<Text style={styles.label}>{label}</Text>
+							{required && <Text style={styles.required}>*</Text>}
+						</View>
+					)}
 
-  return (
-    <View style={styles.container} testID={testID}>
-      {/* Label */}
-      {label && (
-        <Text
-          style={[
-            styles.label,
-            hasError && styles.labelError,
-            disabled && styles.labelDisabled,
-          ]}
-        >
-          {label}
-        </Text>
-      )}
+					<TouchableOpacity
+						style={[
+							styles.selectContainer,
+							error && styles.selectContainerError,
+							disabled && styles.selectContainerDisabled,
+						]}
+						onPress={handlePress}
+						disabled={disabled}
+					>
+						{leftIcon && (
+							<View style={styles.leftIconContainer}>
+								<Ionicons name={leftIcon as any} size={20} color={theme.palette.text.secondary} />
+							</View>
+						)}
 
-      {/* Select Button */}
-      <Pressable
-        ref={ref}
-        onPress={() => !disabled && setIsOpen(true)}
-        disabled={disabled}
-        style={[
-          styles.selectButton,
-          {
-            borderColor: hasError
-              ? theme.palette.error.main
-              : theme.palette.grey[300],
-            backgroundColor: disabled
-              ? theme.palette.action.disabledBackground
-              : theme.palette.background.default,
-          },
-        ]}
-        testID={`${testID}-button`}
-      >
-        {/* Value Display */}
-        <View style={styles.valueContainer}>
-          {renderValue && selectedOption ? (
-            renderValue(value, selectedOption)
-          ) : (
-            <Text
-              style={[
-                styles.valueText,
-                !selectedOption && styles.placeholderText,
-                disabled && styles.valueTextDisabled,
-              ]}
-            >
-              {selectedOption?.label || placeholder}
-            </Text>
-          )}
-        </View>
+						<Text style={[styles.selectText, !field.value && styles.placeholderText]} numberOfLines={1}>
+							{getDisplayText(field.value)}
+						</Text>
 
-        {/* Chevron Icon */}
-        <ChevronDownIcon
-          color={
-            disabled
-              ? theme.palette.text.disabled
-              : theme.palette.text.secondary
-          }
-        />
-      </Pressable>
+						<View style={styles.rightIconContainer}>
+							<Ionicons
+								name={isOpen ? "chevron-up" : "chevron-down"}
+								size={20}
+								color={theme.palette.text.secondary}
+							/>
+						</View>
+					</TouchableOpacity>
 
-      {/* Helper Text / Error Message */}
-      {(helperText || hasError) && (
-        <Text
-          style={[styles.helperText, hasError && styles.errorText]}
-          testID={`${testID}-helper-text`}
-        >
-          {hasError ? error?.message : helperText}
-        </Text>
-      )}
+					{(error || helperText) && (
+						<Text style={[styles.helperText, error && styles.errorText]}>
+							{error ? error.message : helperText}
+						</Text>
+					)}
 
-      {/* Selection Modal */}
-      <Modal
-        visible={isOpen}
-        transparent
-        animationType="slide"
-        onRequestClose={handleClose}
-        testID={`${testID}-modal`}
-      >
-        <Pressable style={styles.modalOverlay} onPress={handleClose}>
-          <View style={styles.modalContent}>
-            {/* Modal Header */}
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>{label || 'Select Option'}</Text>
-              <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
-                <Text style={styles.closeButtonText}>✕</Text>
-              </TouchableOpacity>
-            </View>
+					<Modal visible={isOpen} transparent animationType="fade" onRequestClose={handleClose}>
+						<TouchableOpacity style={styles.modal} onPress={handleClose}>
+							<View style={styles.modalContent}>
+								<View style={styles.modalHeader}>
+									<Text style={styles.modalTitle}>{label || "Select Option"}</Text>
+									<TouchableOpacity onPress={handleClose}>
+										<Ionicons name="close" size={24} color={theme.palette.text.secondary} />
+									</TouchableOpacity>
+								</View>
 
-            {/* Search Input */}
-            {searchable && (
-              <View style={styles.searchContainer}>
-                <TextInput
-                  value={searchQuery}
-                  onChangeText={setSearchQuery}
-                  placeholder={searchPlaceholder}
-                  placeholderTextColor={theme.palette.text.disabled}
-                  style={styles.searchInput}
-                  testID={`${testID}-search`}
-                />
-              </View>
-            )}
+								{searchable && (
+									<View style={styles.searchContainer}>
+										<TextInput
+											style={styles.searchInput}
+											placeholder="Search options..."
+											value={searchQuery}
+											onChangeText={setSearchQuery}
+											placeholderTextColor={theme.palette.text.secondary}
+										/>
+									</View>
+								)}
 
-            {/* Options List */}
-            <FlatList
-              data={filteredOptions}
-              keyExtractor={(item) => item.value}
-              renderItem={renderOptionItem}
-              style={styles.optionsList}
-              contentContainerStyle={styles.optionsListContent}
-              ListEmptyComponent={
-                <View style={styles.emptyContainer}>
-                  <Text style={styles.emptyText}>No options found</Text>
-                </View>
-              }
-              testID={`${testID}-options-list`}
-            />
-          </View>
-        </Pressable>
-      </Modal>
-    </View>
-  );
-}
+								<FlatList
+									data={filteredOptions}
+									renderItem={renderOption}
+									keyExtractor={(item) => item.value.toString()}
+									style={styles.optionsList}
+								/>
 
-/**
- * Styles
- */
-const styles = StyleSheet.create({
-  container: {
-    width: '100%',
-    marginBottom: theme.spacing.md,
-  },
-  label: {
-    ...theme.typography.subtitle2,
-    color: theme.palette.text.primary,
-    marginBottom: theme.spacing.xs,
-    fontWeight: '500',
-  },
-  labelError: {
-    color: theme.palette.error.main,
-  },
-  labelDisabled: {
-    color: theme.palette.text.disabled,
-  },
-  selectButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    borderWidth: 1.5,
-    borderRadius: theme.borderRadius.md,
-    paddingHorizontal: theme.spacing.md,
-    minHeight: 48,
-    backgroundColor: theme.palette.background.default,
-  },
-  valueContainer: {
-    flex: 1,
-    justifyContent: 'center',
-  },
-  valueText: {
-    ...theme.typography.body1,
-    color: theme.palette.text.primary,
-  },
-  placeholderText: {
-    color: theme.palette.text.disabled,
-  },
-  valueTextDisabled: {
-    color: theme.palette.text.disabled,
-  },
-  chevronIcon: {
-    marginLeft: theme.spacing.sm,
-  },
-  chevronText: {
-    fontSize: 12,
-  },
-  helperText: {
-    ...theme.typography.caption,
-    color: theme.palette.text.secondary,
-    marginTop: theme.spacing.xs,
-    marginLeft: theme.spacing.xs,
-  },
-  errorText: {
-    color: theme.palette.error.main,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
-    backgroundColor: theme.palette.background.default,
-    borderTopLeftRadius: theme.borderRadius.xl,
-    borderTopRightRadius: theme.borderRadius.xl,
-    maxHeight: '80%',
-    paddingBottom: theme.spacing.lg,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: theme.spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.palette.divider,
-  },
-  modalTitle: {
-    ...theme.typography.h6,
-    color: theme.palette.text.primary,
-    fontWeight: '600',
-  },
-  closeButton: {
-    padding: theme.spacing.xs,
-  },
-  closeButtonText: {
-    ...theme.typography.h5,
-    color: theme.palette.text.secondary,
-  },
-  searchContainer: {
-    padding: theme.spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.palette.divider,
-  },
-  searchInput: {
-    ...theme.typography.body1,
-    borderWidth: 1,
-    borderColor: theme.palette.grey[300],
-    borderRadius: theme.borderRadius.md,
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.sm,
-    backgroundColor: theme.palette.background.default,
-  },
-  optionsList: {
-    flex: 1,
-  },
-  optionsListContent: {
-    paddingVertical: theme.spacing.xs,
-  },
-  optionItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: theme.spacing.md,
-    paddingHorizontal: theme.spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.palette.divider,
-  },
-  optionItemSelected: {
-    backgroundColor: theme.palette.primary.lighter,
-  },
-  optionItemDisabled: {
-    opacity: 0.5,
-  },
-  optionText: {
-    ...theme.typography.body1,
-    color: theme.palette.text.primary,
-    flex: 1,
-  },
-  optionTextSelected: {
-    color: theme.palette.primary.main,
-    fontWeight: '600',
-  },
-  optionTextDisabled: {
-    color: theme.palette.text.disabled,
-  },
-  checkIcon: {
-    marginLeft: theme.spacing.sm,
-  },
-  checkText: {
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  emptyContainer: {
-    padding: theme.spacing.xl,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  emptyText: {
-    ...theme.typography.body2,
-    color: theme.palette.text.secondary,
-  },
-});
+								{multiple && (
+									<View style={styles.multipleActions}>
+										<TouchableOpacity style={styles.clearButton} onPress={() => field.onChange([])}>
+											<Text>Clear All</Text>
+										</TouchableOpacity>
+										<TouchableOpacity style={styles.doneButton} onPress={handleClose}>
+											<Text style={styles.doneButtonText}>Done</Text>
+										</TouchableOpacity>
+									</View>
+								)}
+							</View>
+						</TouchableOpacity>
+					</Modal>
+				</Animated.View>
+			)}
+		/>
+	);
+};
 
-/**
- * Default export
- */
 export default RHFSelect;

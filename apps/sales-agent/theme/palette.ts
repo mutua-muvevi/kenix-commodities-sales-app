@@ -1,276 +1,146 @@
-/**
- * Color Palette for Sales Agent App
- * Primary: Green (#22c55e) - Sales, growth, success theme
- * Secondary: Blue (#3b82f6) - Trust, professionalism
- * Supports light and dark modes
- */
+import { alpha, darken, lighten } from "./utils/colors";
+import { GreyColors, ThemeColors, CommonColors, ActionColors, Palette } from "./types/theme";
 
-import { Palette, ThemeColors, GreyColors, CommonColors } from './types/theme';
-import { getContrastText, lighten, darken, alpha } from './utils/colors';
-
-/**
- * Common colors used across all themes
- */
-export const common: CommonColors = {
-  black: '#000000',
-  white: '#FFFFFF',
-  transparent: 'transparent',
-};
-
-/**
- * Grey color scale
- */
 export const grey: GreyColors = {
-  50: '#FAFAFA',
-  100: '#F5F5F5',
-  200: '#EEEEEE',
-  300: '#E0E0E0',
-  400: '#BDBDBD',
-  500: '#9E9E9E',
-  600: '#757575',
-  700: '#616161',
-  800: '#424242',
-  900: '#212121',
+	0: "#FFFFFF",
+	100: "#F9FAFB",
+	200: "#F4F6F8",
+	300: "#DFE3E8",
+	400: "#C4CDD5",
+	500: "#919EAB",
+	600: "#637381",
+	700: "#454F5B",
+	800: "#212B36",
+	900: "#161C24",
 };
 
-/**
- * Primary color (Green - Sales/Growth theme)
- */
-const primaryMain = '#22c55e';
+export const common: CommonColors = {
+	black: "#000000",
+	white: "#FFFFFF",
+};
+
+// Your specified colors
+const primaryMain = "#002389";
+const secondaryMain = "#ec5926";
+
 export const primary: ThemeColors = {
-  lighter: lighten(primaryMain, 0.85),
-  light: lighten(primaryMain, 0.5),
-  main: primaryMain,
-  dark: darken(primaryMain, 0.2),
-  darker: darken(primaryMain, 0.4),
-  contrastText: getContrastText(primaryMain),
+	lighter: lighten(primaryMain, 0.3),
+	light: lighten(primaryMain, 0.15),
+	main: primaryMain,
+	dark: darken(primaryMain, 0.1),
+	darker: darken(primaryMain, 0.2),
+	contrastText: "#FFFFFF",
 };
 
-/**
- * Secondary color (Blue - Trust/Professional)
- */
-const secondaryMain = '#3b82f6';
 export const secondary: ThemeColors = {
-  lighter: lighten(secondaryMain, 0.85),
-  light: lighten(secondaryMain, 0.5),
-  main: secondaryMain,
-  dark: darken(secondaryMain, 0.2),
-  darker: darken(secondaryMain, 0.4),
-  contrastText: getContrastText(secondaryMain),
+	lighter: lighten(secondaryMain, 0.3),
+	light: lighten(secondaryMain, 0.15),
+	main: secondaryMain,
+	dark: darken(secondaryMain, 0.1),
+	darker: darken(secondaryMain, 0.2),
+	contrastText: "#FFFFFF",
 };
 
-/**
- * Info color (Cyan)
- */
-const infoMain = '#06b6d4';
 export const info: ThemeColors = {
-  lighter: lighten(infoMain, 0.85),
-  light: lighten(infoMain, 0.5),
-  main: infoMain,
-  dark: darken(infoMain, 0.2),
-  darker: darken(infoMain, 0.4),
-  contrastText: getContrastText(infoMain),
+	lighter: "#CAFDF5",
+	light: "#61F3F3",
+	main: "#00B8D9",
+	dark: "#006C9C",
+	darker: "#003768",
+	contrastText: "#FFFFFF",
 };
 
-/**
- * Success color (Green - aligned with primary)
- */
-const successMain = '#10b981';
 export const success: ThemeColors = {
-  lighter: lighten(successMain, 0.85),
-  light: lighten(successMain, 0.5),
-  main: successMain,
-  dark: darken(successMain, 0.2),
-  darker: darken(successMain, 0.4),
-  contrastText: getContrastText(successMain),
+	lighter: "#D3FCD2",
+	light: "#77ED8B",
+	main: "#22C55E",
+	dark: "#118D57",
+	darker: "#065E49",
+	contrastText: "#FFFFFF",
 };
 
-/**
- * Warning color (Amber)
- */
-const warningMain = '#f59e0b';
 export const warning: ThemeColors = {
-  lighter: lighten(warningMain, 0.85),
-  light: lighten(warningMain, 0.5),
-  main: warningMain,
-  dark: darken(warningMain, 0.2),
-  darker: darken(warningMain, 0.4),
-  contrastText: getContrastText(warningMain),
+	lighter: "#FFF5CC",
+	light: "#FFD666",
+	main: "#FFAB00",
+	dark: "#B76E00",
+	darker: "#7A4100",
+	contrastText: grey[800],
 };
 
-/**
- * Error color (Red)
- */
-const errorMain = '#ef4444';
 export const error: ThemeColors = {
-  lighter: lighten(errorMain, 0.85),
-  light: lighten(errorMain, 0.5),
-  main: errorMain,
-  dark: darken(errorMain, 0.2),
-  darker: darken(errorMain, 0.4),
-  contrastText: getContrastText(errorMain),
+	lighter: "#FFE9D5",
+	light: "#FFAC82",
+	main: "#FF5630",
+	dark: "#B71D18",
+	darker: "#7A0916",
+	contrastText: "#FFFFFF",
 };
 
-/**
- * Light mode palette
- */
-export const lightPalette: Palette = {
-  mode: 'light',
-  common,
-  primary,
-  secondary,
-  info,
-  success,
-  warning,
-  error,
-  grey,
-  text: {
-    primary: grey[900],
-    secondary: grey[600],
-    disabled: grey[400],
-  },
-  background: {
-    default: '#FFFFFF',
-    paper: grey[50],
-    neutral: grey[100],
-  },
-  action: {
-    active: grey[600],
-    hover: alpha(grey[500], 0.08),
-    selected: alpha(primary.main, 0.12),
-    disabled: alpha(grey[500], 0.26),
-    disabledBackground: alpha(grey[500], 0.12),
-    focus: alpha(primary.main, 0.12),
-    hoverOpacity: 0.08,
-    disabledOpacity: 0.38,
-  },
-  divider: alpha(grey[500], 0.12),
+export const action: ActionColors = {
+	hover: alpha(grey[500], 0.08),
+	selected: alpha(grey[500], 0.16),
+	disabled: alpha(grey[500], 0.8),
+	disabledBackground: alpha(grey[500], 0.24),
+	focus: alpha(grey[500], 0.24),
+	active: grey[600],
+	hoverOpacity: 0.08,
+	disabledOpacity: 0.48,
 };
 
-/**
- * Dark mode palette
- */
-export const darkPalette: Palette = {
-  mode: 'dark',
-  common,
-  primary: {
-    ...primary,
-    lighter: darken(primary.main, 0.85),
-    light: darken(primary.main, 0.5),
-    dark: lighten(primary.main, 0.2),
-    darker: lighten(primary.main, 0.4),
-  },
-  secondary: {
-    ...secondary,
-    lighter: darken(secondary.main, 0.85),
-    light: darken(secondary.main, 0.5),
-    dark: lighten(secondary.main, 0.2),
-    darker: lighten(secondary.main, 0.4),
-  },
-  info: {
-    ...info,
-    lighter: darken(info.main, 0.85),
-    light: darken(info.main, 0.5),
-    dark: lighten(info.main, 0.2),
-    darker: lighten(info.main, 0.4),
-  },
-  success: {
-    ...success,
-    lighter: darken(success.main, 0.85),
-    light: darken(success.main, 0.5),
-    dark: lighten(success.main, 0.2),
-    darker: lighten(success.main, 0.4),
-  },
-  warning: {
-    ...warning,
-    lighter: darken(warning.main, 0.85),
-    light: darken(warning.main, 0.5),
-    dark: lighten(warning.main, 0.2),
-    darker: lighten(warning.main, 0.4),
-  },
-  error: {
-    ...error,
-    lighter: darken(error.main, 0.85),
-    light: darken(error.main, 0.5),
-    dark: lighten(error.main, 0.2),
-    darker: lighten(error.main, 0.4),
-  },
-  grey,
-  text: {
-    primary: '#FFFFFF',
-    secondary: grey[400],
-    disabled: grey[600],
-  },
-  background: {
-    default: '#121212',
-    paper: grey[900],
-    neutral: grey[800],
-  },
-  action: {
-    active: grey[400],
-    hover: alpha(grey[300], 0.08),
-    selected: alpha(primary.main, 0.16),
-    disabled: alpha(grey[300], 0.26),
-    disabledBackground: alpha(grey[300], 0.12),
-    focus: alpha(primary.main, 0.16),
-    hoverOpacity: 0.08,
-    disabledOpacity: 0.38,
-  },
-  divider: alpha(grey[300], 0.12),
+const base = {
+	primary,
+	secondary,
+	info,
+	success,
+	warning,
+	error,
+	grey,
+	common,
+	divider: alpha(grey[500], 0.2),
+	action,
 };
 
-/**
- * Get palette based on mode
- * @param mode - 'light' or 'dark'
- * @returns Palette for the specified mode
- */
-export const getPalette = (mode: 'light' | 'dark'): Palette => {
-  return mode === 'dark' ? darkPalette : lightPalette;
-};
+export const palette = (mode: "light" | "dark"): Palette => {
+	const light: Palette = {
+		...base,
+		mode: "light",
+		text: {
+			primary: grey[800],
+			secondary: grey[600],
+			disabled: grey[500],
+		},
+		background: {
+			default: "#FFFFFF",
+			paper: grey[100],
+			neutral: grey[200],
+			surface: "#FFFFFF",
+		},
+		action: {
+			...base.action,
+			active: grey[600],
+		},
+	};
 
-/**
- * Create custom palette with override colors
- * @param mode - 'light' or 'dark'
- * @param primaryColor - Custom primary color (optional)
- * @param secondaryColor - Custom secondary color (optional)
- * @returns Custom palette
- */
-export const createCustomPalette = (
-  mode: 'light' | 'dark',
-  primaryColor?: string,
-  secondaryColor?: string
-): Palette => {
-  const basePalette = getPalette(mode);
+	const dark: Palette = {
+		...base,
+		mode: "dark",
+		text: {
+			primary: "#FFFFFF",
+			secondary: grey[500],
+			disabled: grey[600],
+		},
+		background: {
+			default: "#121313",
+			paper: "#181a1b",
+			neutral: alpha(grey[500], 0.12),
+			surface: "#1e1e1e",
+		},
+		action: {
+			...base.action,
+			active: grey[500],
+		},
+	};
 
-  if (!primaryColor && !secondaryColor) {
-    return basePalette;
-  }
-
-  const customPrimary = primaryColor
-    ? {
-        lighter: lighten(primaryColor, 0.85),
-        light: lighten(primaryColor, 0.5),
-        main: primaryColor,
-        dark: darken(primaryColor, 0.2),
-        darker: darken(primaryColor, 0.4),
-        contrastText: getContrastText(primaryColor),
-      }
-    : basePalette.primary;
-
-  const customSecondary = secondaryColor
-    ? {
-        lighter: lighten(secondaryColor, 0.85),
-        light: lighten(secondaryColor, 0.5),
-        main: secondaryColor,
-        dark: darken(secondaryColor, 0.2),
-        darker: darken(secondaryColor, 0.4),
-        contrastText: getContrastText(secondaryColor),
-      }
-    : basePalette.secondary;
-
-  return {
-    ...basePalette,
-    primary: customPrimary,
-    secondary: customSecondary,
-  };
+	return mode === "light" ? light : dark;
 };

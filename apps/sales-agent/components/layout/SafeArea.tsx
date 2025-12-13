@@ -1,72 +1,45 @@
-/**
- * SafeArea Component
- *
- * Provides safe area context wrapper with configurable edges and background color.
- * Handles device-specific safe areas (notch, dynamic island, navigation bars).
- *
- * Features:
- * - Configurable safe area edges
- * - Theme-based background color
- * - Custom background color override
- * - iOS notch/dynamic island support
- * - Android navigation bar support
- *
- * @example
- * <SafeArea edges={['top', 'bottom']}>
- *   <YourContent />
- * </SafeArea>
- */
+// components/layout/SafeArea.tsx - Enhanced safe area with Android navigation support
+import React, { ReactNode } from "react";
+import { StyleSheet, ViewStyle, Platform } from "react-native";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import { useTheme } from "../../hooks/useTheme";
 
-import React from 'react';
-import { ViewStyle, StyleSheet } from 'react-native';
-import { SafeAreaView, Edge } from 'react-native-safe-area-context';
-import { useTheme } from '../../hooks/useTheme';
-
-export interface SafeAreaProps {
-  /**
-   * Child components to render within safe area
-   */
-  children: React.ReactNode;
-
-  /**
-   * Which edges to apply safe area padding to
-   * @default ['top', 'bottom', 'left', 'right']
-   */
-  edges?: Edge[];
-
-  /**
-   * Custom style overrides
-   */
-  style?: ViewStyle;
-
-  /**
-   * Custom background color (overrides theme)
-   */
-  backgroundColor?: string;
+interface SafeAreaProps {
+	children: ReactNode;
+	style?: ViewStyle;
+	edges?: ("top" | "bottom" | "left" | "right")[];
+	hasTabBar?: boolean;
 }
 
-/**
- * SafeArea Component
- * Wraps content in safe area context with configurable edges
- */
-export const SafeArea: React.FC<SafeAreaProps> = ({
-  children,
-  edges = ['top', 'bottom', 'left', 'right'],
-  style,
-  backgroundColor,
-}) => {
-  const { theme } = useTheme();
+export const SafeArea: React.FC<SafeAreaProps> = ({ children, style, edges = ["top"], hasTabBar = true }) => {
+	const { theme } = useTheme();
+	const insets = useSafeAreaInsets();
 
-  const styles = StyleSheet.create({
-    container: {
-      flex: 1,
-      backgroundColor: backgroundColor || theme.palette.background.default,
-    },
-  });
+	// Calculate bottom padding to avoid Android navigation overlap
+	const getBottomPadding = () => {
+		if (!hasTabBar) return 0;
 
-  return (
-    <SafeAreaView style={[styles.container, style]} edges={edges}>
-      {children}
-    </SafeAreaView>
-  );
+		if (Platform.OS === "ios") {
+			return 0; // Tab bar handles this
+		}
+
+		// Android: Add extra padding above system navigation
+		const tabBarHeight = 60;
+		const systemNavPadding = Math.max(insets.bottom, 16);
+		return tabBarHeight + systemNavPadding + 8; // Extra safety margin
+	};
+
+	const styles = StyleSheet.create({
+		container: {
+			flex: 1,
+			backgroundColor: theme.palette.background.default,
+			paddingBottom: getBottomPadding(),
+		},
+	});
+
+	return (
+		<SafeAreaView style={[styles.container, style]} edges={edges}>
+			{children}
+		</SafeAreaView>
+	);
 };

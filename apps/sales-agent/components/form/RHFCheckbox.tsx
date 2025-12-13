@@ -1,299 +1,477 @@
-/**
- * RHFCheckbox Component
- * React Hook Form integrated checkbox field
- *
- * Features:
- * - Connected to react-hook-form via useController
- * - Animated checkbox with smooth transitions
- * - Auto-displays validation errors
- * - Optional description text
- * - Accessible and keyboard-friendly
- *
- * Usage:
- * ```tsx
- * <RHFCheckbox
- *   name="terms"
- *   label="I accept the terms and conditions"
- *   description="Please read our terms before proceeding"
- *   rules={{ required: 'You must accept the terms' }}
- * />
- * ```
- */
+// components/form/RHFCheckbox.tsx
+import React from "react";
+import { View, Text, TouchableOpacity, StyleSheet, ViewStyle } from "react-native";
+import { Controller, useFormContext } from "react-hook-form";
+import { Ionicons } from "@expo/vector-icons";
+import Animated, { useAnimatedStyle, useSharedValue, withSpring } from "react-native-reanimated";
+import { useTheme } from "../../hooks/useTheme";
 
-import React from 'react';
-import { View, Text, StyleSheet, Pressable, Animated } from 'react-native';
-import { useController, RegisterOptions, useFormContext } from 'react-hook-form';
-import { theme } from '../../theme';
-
-/**
- * RHFCheckbox Props
- */
-export interface RHFCheckboxProps {
-  /**
-   * Field name (must match form schema)
-   */
-  name: string;
-
-  /**
-   * Checkbox label
-   */
-  label: string;
-
-  /**
-   * Optional description text
-   */
-  description?: string;
-
-  /**
-   * Validation rules
-   */
-  rules?: RegisterOptions;
-
-  /**
-   * Disabled state
-   */
-  disabled?: boolean;
-
-  /**
-   * Test ID for testing
-   */
-  testID?: string;
-
-  /**
-   * Custom checkbox color
-   */
-  checkboxColor?: string;
-
-  /**
-   * Custom label style
-   */
-  labelStyle?: object;
-
-  /**
-   * On value change callback
-   */
-  onValueChange?: (value: boolean) => void;
+interface CheckboxOption {
+	label: string;
+	value: string | number;
+	disabled?: boolean;
 }
 
-/**
- * Animated Check Mark Component
- */
-const AnimatedCheckMark = ({ isChecked }: { isChecked: boolean }) => {
-  const scaleAnim = React.useRef(new Animated.Value(0)).current;
+interface RHFCheckboxProps {
+	name: string;
+	label?: string;
+	helperText?: string;
+	disabled?: boolean;
+	style?: ViewStyle;
+	required?: boolean;
+}
 
-  React.useEffect(() => {
-    Animated.spring(scaleAnim, {
-      toValue: isChecked ? 1 : 0,
-      friction: 6,
-      tension: 100,
-      useNativeDriver: true,
-    }).start();
-  }, [isChecked, scaleAnim]);
+interface RHFMultiCheckboxProps {
+	name: string;
+	label?: string;
+	helperText?: string;
+	options: CheckboxOption[];
+	disabled?: boolean;
+	style?: ViewStyle;
+	required?: boolean;
+	row?: boolean;
+	spacing?: number;
+}
 
-  return (
-    <Animated.View
-      style={[
-        styles.checkMark,
-        {
-          transform: [{ scale: scaleAnim }],
-          opacity: scaleAnim,
-        },
-      ]}
-    >
-      <Text style={styles.checkMarkText}>✓</Text>
-    </Animated.View>
-  );
+// Single Checkbox Component
+export const RHFCheckbox: React.FC<RHFCheckboxProps> = ({
+	name,
+	label,
+	helperText,
+	disabled = false,
+	style,
+	required = false,
+}) => {
+	const { theme } = useTheme();
+	const { control } = useFormContext();
+	const scale = useSharedValue(1);
+
+	const handlePress = (field: any) => {
+		if (!disabled) {
+			scale.value = withSpring(0.95, {}, () => {
+				scale.value = withSpring(1);
+			});
+			field.onChange(!field.value);
+		}
+	};
+
+	const animatedStyle = useAnimatedStyle(() => ({
+		transform: [{ scale: scale.value }],
+	}));
+
+	const styles = StyleSheet.create({
+		container: {
+			marginBottom: theme.spacing.sm,
+		},
+		checkboxContainer: {
+			flexDirection: "row",
+			alignItems: "center",
+		},
+		checkbox: {
+			width: 20,
+			height: 20,
+			borderRadius: theme.borderRadius.xs,
+			borderWidth: 2,
+			borderColor: theme.palette.primary.main,
+			alignItems: "center",
+			justifyContent: "center",
+			marginRight: theme.spacing.sm,
+		},
+		checkboxChecked: {
+			backgroundColor: theme.palette.primary.main,
+		},
+		checkboxDisabled: {
+			borderColor: theme.palette.grey[400],
+			backgroundColor: theme.palette.grey[200],
+		},
+		labelContainer: {
+			flex: 1,
+			flexDirection: "row",
+		},
+		label: {
+			...theme.typography.body1,
+			color: theme.palette.text.primary,
+			fontSize: 14,
+		},
+		labelDisabled: {
+			color: theme.palette.text.disabled,
+		},
+		required: {
+			color: theme.palette.error.main,
+			marginLeft: 2,
+		},
+		helperText: {
+			...theme.typography.caption,
+			color: theme.palette.text.secondary,
+			marginTop: theme.spacing.xs,
+			fontSize: 11,
+		},
+		errorText: {
+			color: theme.palette.error.main,
+		},
+	});
+
+	return (
+		<Controller
+			name={name}
+			control={control}
+			render={({ field, fieldState: { error } }) => (
+				<View style={[styles.container, style]}>
+					<TouchableOpacity
+						style={styles.checkboxContainer}
+						onPress={() => handlePress(field)}
+						disabled={disabled}
+						activeOpacity={0.7}
+					>
+						<Animated.View
+							style={[
+								styles.checkbox,
+								field.value && styles.checkboxChecked,
+								disabled && styles.checkboxDisabled,
+								animatedStyle,
+							]}
+						>
+							{field.value && (
+								<Ionicons
+									name="checkmark"
+									size={14}
+									color={disabled ? theme.palette.grey[600] : theme.palette.primary.contrastText}
+								/>
+							)}
+						</Animated.View>
+
+						{label && (
+							<View style={styles.labelContainer}>
+								<Text style={[styles.label, disabled && styles.labelDisabled]}>{label}</Text>
+								{required && <Text style={styles.required}>*</Text>}
+							</View>
+						)}
+					</TouchableOpacity>
+
+					{(error || helperText) && (
+						<Text style={[styles.helperText, error && styles.errorText]}>
+							{error ? error.message : helperText}
+						</Text>
+					)}
+				</View>
+			)}
+		/>
+	);
 };
 
-/**
- * RHFCheckbox Component
- */
-export function RHFCheckbox({
-  name,
-  label,
-  description,
-  rules,
-  disabled = false,
-  testID,
-  checkboxColor = theme.palette.primary.main,
-  labelStyle,
-  onValueChange,
-}: RHFCheckboxProps) {
-  const { control } = useFormContext();
+// Multiple Checkbox Component
+export const RHFMultiCheckbox: React.FC<RHFMultiCheckboxProps> = ({
+	name,
+	label,
+	helperText,
+	options,
+	disabled = false,
+	style,
+	required = false,
+	row = false,
+	spacing = 2,
+}) => {
+	const { theme } = useTheme();
+	const { control } = useFormContext();
 
-  const {
-    field: { onChange, value, ref },
-    fieldState: { error, isTouched },
-  } = useController({
-    name,
-    control,
-    rules,
-    defaultValue: false,
-  });
+	const handleOptionToggle = (optionValue: string | number, field: any) => {
+		const currentValues = field.value || [];
+		const isSelected = currentValues.includes(optionValue);
 
-  const hasError = Boolean(error && isTouched);
-  const isChecked = Boolean(value);
+		if (isSelected) {
+			field.onChange(currentValues.filter((value: any) => value !== optionValue));
+		} else {
+			field.onChange([...currentValues, optionValue]);
+		}
+	};
 
-  /**
-   * Handle checkbox toggle
-   */
-  const handleToggle = React.useCallback(() => {
-    if (!disabled) {
-      const newValue = !isChecked;
-      onChange(newValue);
-      onValueChange?.(newValue);
-    }
-  }, [disabled, isChecked, onChange, onValueChange]);
+	const styles = StyleSheet.create({
+		container: {
+			marginBottom: theme.spacing.sm,
+		},
+		labelContainer: {
+			flexDirection: "row",
+			marginBottom: theme.spacing.xs,
+		},
+		label: {
+			...theme.typography.body2,
+			color: theme.palette.text.primary,
+			fontWeight: "500",
+		},
+		required: {
+			color: theme.palette.error.main,
+			marginLeft: 2,
+		},
+		optionsContainer: {
+			flexDirection: row ? "row" : "column",
+			flexWrap: row ? "wrap" : "nowrap",
+		},
+		optionItem: {
+			flexDirection: "row",
+			alignItems: "center",
+			marginBottom: row ? 0 : theme.spacing.xs,
+			marginRight: row ? theme.spacing.sm : 0,
+			marginTop: row ? theme.spacing.xs : 0,
+		},
+		checkbox: {
+			width: 18,
+			height: 18,
+			borderRadius: theme.borderRadius.xs,
+			borderWidth: 1.5,
+			borderColor: theme.palette.primary.main,
+			alignItems: "center",
+			justifyContent: "center",
+			marginRight: theme.spacing.xs,
+		},
+		checkboxChecked: {
+			backgroundColor: theme.palette.primary.main,
+		},
+		checkboxDisabled: {
+			borderColor: theme.palette.grey[400],
+			backgroundColor: theme.palette.grey[200],
+		},
+		optionLabel: {
+			...theme.typography.body2,
+			color: theme.palette.text.primary,
+			fontSize: 13,
+		},
+		optionLabelDisabled: {
+			color: theme.palette.text.disabled,
+		},
+		helperText: {
+			...theme.typography.caption,
+			color: theme.palette.text.secondary,
+			marginTop: theme.spacing.xs,
+			fontSize: 11,
+		},
+		errorText: {
+			color: theme.palette.error.main,
+		},
+	});
 
-  /**
-   * Get checkbox border color
-   */
-  const getBorderColor = () => {
-    if (hasError) return theme.palette.error.main;
-    if (isChecked) return checkboxColor;
-    if (disabled) return theme.palette.action.disabled;
-    return theme.palette.grey[400];
-  };
+	return (
+		<Controller
+			name={name}
+			control={control}
+			render={({ field, fieldState: { error } }) => (
+				<View style={[styles.container, style]}>
+					{label && (
+						<View style={styles.labelContainer}>
+							<Text style={styles.label}>{label}</Text>
+							{required && <Text style={styles.required}>*</Text>}
+						</View>
+					)}
 
-  /**
-   * Get checkbox background color
-   */
-  const getBackgroundColor = () => {
-    if (disabled && isChecked) return theme.palette.action.disabled;
-    if (isChecked) return checkboxColor;
-    return 'transparent';
-  };
+					<View style={styles.optionsContainer}>
+						{options.map((option) => {
+							const isSelected = (field.value || []).includes(option.value);
+							const isDisabled = disabled || option.disabled;
 
-  return (
-    <View style={styles.container} testID={testID}>
-      <Pressable
-        ref={ref}
-        onPress={handleToggle}
-        disabled={disabled}
-        style={[
-          styles.checkboxContainer,
-          disabled && styles.checkboxContainerDisabled,
-        ]}
-        testID={`${testID}-pressable`}
-        accessibilityRole="checkbox"
-        accessibilityState={{ checked: isChecked, disabled }}
-        accessibilityLabel={label}
-      >
-        {/* Checkbox Box */}
-        <View
-          style={[
-            styles.checkbox,
-            {
-              borderColor: getBorderColor(),
-              backgroundColor: getBackgroundColor(),
-            },
-          ]}
-        >
-          <AnimatedCheckMark isChecked={isChecked} />
-        </View>
+							return (
+								<TouchableOpacity
+									key={option.value}
+									style={styles.optionItem}
+									onPress={() => !isDisabled && handleOptionToggle(option.value, field)}
+									disabled={isDisabled}
+									activeOpacity={0.7}
+								>
+									<View
+										style={[
+											styles.checkbox,
+											isSelected && styles.checkboxChecked,
+											isDisabled && styles.checkboxDisabled,
+										]}
+									>
+										{isSelected && (
+											<Ionicons
+												name="checkmark"
+												size={12}
+												color={
+													isDisabled
+														? theme.palette.grey[600]
+														: theme.palette.primary.contrastText
+												}
+											/>
+										)}
+									</View>
+									<Text style={[styles.optionLabel, isDisabled && styles.optionLabelDisabled]}>
+										{option.label}
+									</Text>
+								</TouchableOpacity>
+							);
+						})}
+					</View>
 
-        {/* Label and Description */}
-        <View style={styles.textContainer}>
-          <Text
-            style={[
-              styles.label,
-              hasError && styles.labelError,
-              disabled && styles.labelDisabled,
-              labelStyle,
-            ]}
-          >
-            {label}
-          </Text>
+					{(error || helperText) && (
+						<Text style={[styles.helperText, error && styles.errorText]}>
+							{error ? error.message : helperText}
+						</Text>
+					)}
+				</View>
+			)}
+		/>
+	);
+};
 
-          {description && (
-            <Text
-              style={[
-                styles.description,
-                disabled && styles.descriptionDisabled,
-              ]}
-            >
-              {description}
-            </Text>
-          )}
-        </View>
-      </Pressable>
-
-      {/* Error Message */}
-      {hasError && (
-        <Text style={styles.errorText} testID={`${testID}-error`}>
-          {error?.message}
-        </Text>
-      )}
-    </View>
-  );
+// Radio Group Component
+interface RadioOption {
+	label: string;
+	value: string | number;
+	disabled?: boolean;
 }
 
-/**
- * Styles
- */
-const styles = StyleSheet.create({
-  container: {
-    width: '100%',
-    marginBottom: theme.spacing.md,
-  },
-  checkboxContainer: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-  },
-  checkboxContainerDisabled: {
-    opacity: 0.5,
-  },
-  checkbox: {
-    width: 24,
-    height: 24,
-    borderRadius: theme.borderRadius.sm,
-    borderWidth: 2,
-    marginRight: theme.spacing.sm,
-    marginTop: 2, // Align with first line of text
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  checkMark: {
-    position: 'absolute',
-  },
-  checkMarkText: {
-    color: theme.palette.common.white,
-    fontSize: 16,
-    fontWeight: '700',
-    lineHeight: 18,
-  },
-  textContainer: {
-    flex: 1,
-  },
-  label: {
-    ...theme.typography.body1,
-    color: theme.palette.text.primary,
-    lineHeight: 22,
-  },
-  labelError: {
-    color: theme.palette.error.main,
-  },
-  labelDisabled: {
-    color: theme.palette.text.disabled,
-  },
-  description: {
-    ...theme.typography.caption,
-    color: theme.palette.text.secondary,
-    marginTop: theme.spacing.xs,
-    lineHeight: 16,
-  },
-  descriptionDisabled: {
-    color: theme.palette.text.disabled,
-  },
-  errorText: {
-    ...theme.typography.caption,
-    color: theme.palette.error.main,
-    marginTop: theme.spacing.xs,
-    marginLeft: 32, // Align with label text (checkbox width + margin)
-  },
-});
+interface RHFRadioGroupProps {
+	name: string;
+	label?: string;
+	helperText?: string;
+	options: RadioOption[];
+	disabled?: boolean;
+	style?: ViewStyle;
+	required?: boolean;
+	row?: boolean;
+}
 
-/**
- * Default export
- */
-export default RHFCheckbox;
+export const RHFRadioGroup: React.FC<RHFRadioGroupProps> = ({
+	name,
+	label,
+	helperText,
+	options,
+	disabled = false,
+	style,
+	required = false,
+	row = false,
+}) => {
+	const { theme } = useTheme();
+	const { control } = useFormContext();
+
+	const styles = StyleSheet.create({
+		container: {
+			marginBottom: theme.spacing.sm,
+		},
+		labelContainer: {
+			flexDirection: "row",
+			marginBottom: theme.spacing.xs,
+		},
+		label: {
+			...theme.typography.body2,
+			color: theme.palette.text.primary,
+			fontWeight: "500",
+		},
+		required: {
+			color: theme.palette.error.main,
+			marginLeft: 2,
+		},
+		optionsContainer: {
+			flexDirection: row ? "row" : "column",
+			flexWrap: row ? "wrap" : "nowrap",
+		},
+		optionItem: {
+			flexDirection: "row",
+			alignItems: "center",
+			marginBottom: row ? 0 : theme.spacing.xs,
+			marginRight: row ? theme.spacing.md : 0,
+			marginTop: row ? theme.spacing.xs : 0,
+		},
+		radio: {
+			width: 20,
+			height: 20,
+			borderRadius: 10,
+			borderWidth: 2,
+			borderColor: theme.palette.primary.main,
+			alignItems: "center",
+			justifyContent: "center",
+			marginRight: theme.spacing.sm,
+		},
+		radioSelected: {
+			borderColor: theme.palette.primary.main,
+		},
+		radioDisabled: {
+			borderColor: theme.palette.grey[400],
+		},
+		radioInner: {
+			width: 10,
+			height: 10,
+			borderRadius: 5,
+			backgroundColor: theme.palette.primary.main,
+		},
+		radioInnerDisabled: {
+			backgroundColor: theme.palette.grey[400],
+		},
+		optionLabel: {
+			...theme.typography.body1,
+			color: theme.palette.text.primary,
+			fontSize: 14,
+		},
+		optionLabelDisabled: {
+			color: theme.palette.text.disabled,
+		},
+		helperText: {
+			...theme.typography.caption,
+			color: theme.palette.text.secondary,
+			marginTop: theme.spacing.xs,
+			fontSize: 11,
+		},
+		errorText: {
+			color: theme.palette.error.main,
+		},
+	});
+
+	return (
+		<Controller
+			name={name}
+			control={control}
+			render={({ field, fieldState: { error } }) => (
+				<View style={[styles.container, style]}>
+					{label && (
+						<View style={styles.labelContainer}>
+							<Text style={styles.label}>{label}</Text>
+							{required && <Text style={styles.required}>*</Text>}
+						</View>
+					)}
+
+					<View style={styles.optionsContainer}>
+						{options.map((option) => {
+							const isSelected = field.value === option.value;
+							const isDisabled = disabled || option.disabled;
+
+							return (
+								<TouchableOpacity
+									key={option.value}
+									style={styles.optionItem}
+									onPress={() => !isDisabled && field.onChange(option.value)}
+									disabled={isDisabled}
+									activeOpacity={0.7}
+								>
+									<View
+										style={[
+											styles.radio,
+											isSelected && styles.radioSelected,
+											isDisabled && styles.radioDisabled,
+										]}
+									>
+										{isSelected && (
+											<View
+												style={[styles.radioInner, isDisabled && styles.radioInnerDisabled]}
+											/>
+										)}
+									</View>
+									<Text style={[styles.optionLabel, isDisabled && styles.optionLabelDisabled]}>
+										{option.label}
+									</Text>
+								</TouchableOpacity>
+							);
+						})}
+					</View>
+
+					{(error || helperText) && (
+						<Text style={[styles.helperText, error && styles.errorText]}>
+							{error ? error.message : helperText}
+						</Text>
+					)}
+				</View>
+			)}
+		/>
+	);
+};
+
+export default { RHFCheckbox, RHFMultiCheckbox, RHFRadioGroup };

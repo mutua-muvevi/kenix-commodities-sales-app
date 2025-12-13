@@ -1,344 +1,250 @@
-/**
- * RHFTextField Component
- * React Hook Form integrated text input field
- *
- * Features:
- * - Connected to react-hook-form via useController
- * - Auto-displays validation errors
- * - Supports all TextInput props
- * - Icon support (left/right)
- * - Multiline support
- *
- * Usage:
- * ```tsx
- * <RHFTextField
- *   name="email"
- *   label="Email Address"
- *   placeholder="Enter your email"
- *   rules={{ required: 'Email is required' }}
- *   keyboardType="email-address"
- * />
- * ```
- */
+// components/form/RHFTextField.tsx
+import React, { useState } from "react";
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ViewStyle, TextStyle } from "react-native";
+import { Controller, useFormContext } from "react-hook-form";
+import { Ionicons } from "@expo/vector-icons";
+import Animated, { useAnimatedStyle, useSharedValue, withSpring } from "react-native-reanimated";
+import { useTheme } from "../../hooks/useTheme";
 
-import React from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  StyleSheet,
-  KeyboardTypeOptions,
-  TextInputProps,
-  Pressable,
-} from 'react-native';
-import { useController, RegisterOptions, useFormContext } from 'react-hook-form';
-import { theme } from '../../theme';
-
-/**
- * RHFTextField Props
- */
-export interface RHFTextFieldProps extends Omit<TextInputProps, 'value' | 'onChangeText' | 'onBlur'> {
-  /**
-   * Field name (must match form schema)
-   */
-  name: string;
-
-  /**
-   * Input label
-   */
-  label?: string;
-
-  /**
-   * Placeholder text
-   */
-  placeholder?: string;
-
-  /**
-   * Helper text (shown below input)
-   */
-  helperText?: string;
-
-  /**
-   * Left icon component
-   */
-  leftIcon?: React.ReactNode;
-
-  /**
-   * Right icon component
-   */
-  rightIcon?: React.ReactNode;
-
-  /**
-   * Secure text entry (for passwords)
-   */
-  secureTextEntry?: boolean;
-
-  /**
-   * Keyboard type
-   */
-  keyboardType?: KeyboardTypeOptions;
-
-  /**
-   * Multiline input
-   */
-  multiline?: boolean;
-
-  /**
-   * Number of lines (for multiline)
-   */
-  numberOfLines?: number;
-
-  /**
-   * Validation rules
-   */
-  rules?: RegisterOptions;
-
-  /**
-   * Disabled state
-   */
-  disabled?: boolean;
-
-  /**
-   * Test ID for testing
-   */
-  testID?: string;
-
-  /**
-   * On right icon press
-   */
-  onRightIconPress?: () => void;
-
-  /**
-   * On left icon press
-   */
-  onLeftIconPress?: () => void;
+interface RHFTextFieldProps {
+	name: string;
+	label?: string;
+	placeholder?: string;
+	helperText?: string;
+	type?: "text" | "email" | "password" | "number" | "phone";
+	multiline?: boolean;
+	numberOfLines?: number;
+	maxLength?: number;
+	autoCapitalize?: "none" | "sentences" | "words" | "characters";
+	autoCorrect?: boolean;
+	keyboardType?: "default" | "numeric" | "email-address" | "phone-pad";
+	leftIcon?: string;
+	rightIcon?: string;
+	onRightIconPress?: () => void;
+	disabled?: boolean;
+	style?: ViewStyle;
+	inputStyle?: TextStyle;
+	required?: boolean;
 }
 
-/**
- * RHFTextField Component
- */
-export function RHFTextField({
-  name,
-  label,
-  placeholder,
-  helperText,
-  leftIcon,
-  rightIcon,
-  secureTextEntry,
-  keyboardType,
-  multiline = false,
-  numberOfLines = 1,
-  rules,
-  disabled = false,
-  testID,
-  onRightIconPress,
-  onLeftIconPress,
-  style,
-  ...otherProps
-}: RHFTextFieldProps) {
-  const { control } = useFormContext();
+export const RHFTextField: React.FC<RHFTextFieldProps> = ({
+	name,
+	label,
+	placeholder,
+	helperText,
+	type = "text",
+	multiline = false,
+	numberOfLines = 1,
+	maxLength,
+	autoCapitalize = "sentences",
+	autoCorrect = true,
+	keyboardType = "default",
+	leftIcon,
+	rightIcon,
+	onRightIconPress,
+	disabled = false,
+	style,
+	inputStyle,
+	required = false,
+}) => {
+	const { theme } = useTheme();
+	const { control } = useFormContext();
+	const [isFocused, setIsFocused] = useState(false);
+	const [showPassword, setShowPassword] = useState(false);
+	const scale = useSharedValue(1);
 
-  const {
-    field: { onChange, onBlur, value, ref },
-    fieldState: { error, isTouched },
-  } = useController({
-    name,
-    control,
-    rules,
-    defaultValue: '',
-  });
+	const handleFocus = () => {
+		setIsFocused(true);
+		scale.value = withSpring(1.02);
+	};
 
-  const [isFocused, setIsFocused] = React.useState(false);
+	const handleBlur = () => {
+		setIsFocused(false);
+		scale.value = withSpring(1);
+	};
 
-  const hasError = Boolean(error && isTouched);
+	const togglePasswordVisibility = () => {
+		setShowPassword(!showPassword);
+	};
 
-  /**
-   * Handle focus
-   */
-  const handleFocus = React.useCallback(() => {
-    setIsFocused(true);
-  }, []);
+	const animatedStyle = useAnimatedStyle(() => ({
+		transform: [{ scale: scale.value }],
+	}));
 
-  /**
-   * Handle blur
-   */
-  const handleBlur = React.useCallback(() => {
-    setIsFocused(false);
-    onBlur();
-  }, [onBlur]);
+	const getKeyboardType = () => {
+		if (keyboardType !== "default") return keyboardType;
+		switch (type) {
+			case "email":
+				return "email-address";
+			case "number":
+				return "numeric";
+			case "phone":
+				return "phone-pad";
+			default:
+				return "default";
+		}
+	};
 
-  /**
-   * Get border color based on state
-   */
-  const getBorderColor = () => {
-    if (hasError) return theme.palette.error.main;
-    if (isFocused) return theme.palette.primary.main;
-    if (disabled) return theme.palette.action.disabled;
-    return theme.palette.grey[300];
-  };
+	const getAutoCapitalize = () => {
+		if (type === "email") return "none";
+		return autoCapitalize;
+	};
 
-  return (
-    <View style={styles.container} testID={testID}>
-      {/* Label */}
-      {label && (
-        <Text
-          style={[
-            styles.label,
-            hasError && styles.labelError,
-            disabled && styles.labelDisabled,
-          ]}
-        >
-          {label}
-        </Text>
-      )}
+	const getSecureTextEntry = () => {
+		return type === "password" && !showPassword;
+	};
 
-      {/* Input Container */}
-      <View
-        style={[
-          styles.inputContainer,
-          multiline && styles.inputContainerMultiline,
-          {
-            borderColor: getBorderColor(),
-            backgroundColor: disabled
-              ? theme.palette.action.disabledBackground
-              : theme.palette.background.default,
-          },
-        ]}
-      >
-        {/* Left Icon */}
-        {leftIcon && (
-          <Pressable
-            onPress={onLeftIconPress}
-            disabled={!onLeftIconPress || disabled}
-            style={styles.leftIconContainer}
-          >
-            {leftIcon}
-          </Pressable>
-        )}
+	const styles = StyleSheet.create({
+		container: {
+			marginBottom: theme.spacing.sm, // Reduced spacing
+		},
+		labelContainer: {
+			flexDirection: "row",
+			marginBottom: theme.spacing.xs,
+		},
+		label: {
+			...theme.typography.body2,
+			color: theme.palette.text.primary,
+			fontWeight: "500",
+		},
+		required: {
+			color: theme.palette.error.main,
+			marginLeft: 2,
+		},
+		inputContainer: {
+			flexDirection: "row",
+			alignItems: multiline ? "flex-start" : "center",
+			backgroundColor: theme.palette.background.surface,
+			borderWidth: 1,
+			borderColor: isFocused ? theme.palette.primary.main : theme.palette.grey[300],
+			borderRadius: theme.borderRadius.sm, // Smaller radius
+			paddingHorizontal: theme.spacing.sm, // Reduced padding
+			paddingVertical: multiline ? theme.spacing.sm : theme.spacing.xs,
+			minHeight: multiline ? 80 : 44, // Reduced height
+		},
+		inputContainerError: {
+			borderColor: theme.palette.error.main,
+		},
+		inputContainerDisabled: {
+			backgroundColor: theme.palette.grey[100],
+			opacity: 0.6,
+		},
+		leftIconContainer: {
+			marginRight: theme.spacing.xs,
+			paddingTop: multiline ? theme.spacing.xs : 0,
+		},
+		input: {
+			flex: 1,
+			...theme.typography.body1,
+			color: theme.palette.text.primary,
+			fontSize: 14, // Slightly smaller font
+			textAlignVertical: multiline ? "top" : "center",
+			paddingVertical: 0,
+		},
+		rightIconContainer: {
+			marginLeft: theme.spacing.xs,
+			padding: theme.spacing.xs,
+		},
+		helperText: {
+			...theme.typography.caption,
+			color: theme.palette.text.secondary,
+			marginTop: theme.spacing.xs,
+			fontSize: 11, // Smaller helper text
+		},
+		errorText: {
+			color: theme.palette.error.main,
+		},
+	});
 
-        {/* Text Input */}
-        <TextInput
-          ref={ref}
-          value={value}
-          onChangeText={onChange}
-          onBlur={handleBlur}
-          onFocus={handleFocus}
-          placeholder={placeholder}
-          placeholderTextColor={theme.palette.text.disabled}
-          secureTextEntry={secureTextEntry}
-          keyboardType={keyboardType}
-          multiline={multiline}
-          numberOfLines={multiline ? numberOfLines : 1}
-          editable={!disabled}
-          style={[
-            styles.input,
-            multiline && styles.inputMultiline,
-            disabled && styles.inputDisabled,
-            style,
-          ]}
-          testID={`${testID}-input`}
-          {...otherProps}
-        />
+	return (
+		<Controller
+			name={name}
+			control={control}
+			render={({ field, fieldState: { error } }) => (
+				<Animated.View style={[styles.container, animatedStyle, style]}>
+					{label && (
+						<View style={styles.labelContainer}>
+							<Text style={styles.label}>{label}</Text>
+							{required && <Text style={styles.required}>*</Text>}
+						</View>
+					)}
 
-        {/* Right Icon */}
-        {rightIcon && (
-          <Pressable
-            onPress={onRightIconPress}
-            disabled={!onRightIconPress || disabled}
-            style={styles.rightIconContainer}
-          >
-            {rightIcon}
-          </Pressable>
-        )}
-      </View>
+					<View
+						style={[
+							styles.inputContainer,
+							error && styles.inputContainerError,
+							disabled && styles.inputContainerDisabled,
+						]}
+					>
+						{leftIcon && (
+							<View style={styles.leftIconContainer}>
+								<Ionicons
+									name={leftIcon as any}
+									size={20}
+									color={isFocused ? theme.palette.primary.main : theme.palette.text.secondary}
+								/>
+							</View>
+						)}
 
-      {/* Helper Text / Error Message */}
-      {(helperText || hasError) && (
-        <Text
-          style={[
-            styles.helperText,
-            hasError && styles.errorText,
-          ]}
-          testID={`${testID}-helper-text`}
-        >
-          {hasError ? error?.message : helperText}
-        </Text>
-      )}
-    </View>
-  );
-}
+						<TextInput
+							{...field}
+							value={field.value || ""}
+							onChangeText={(text) => {
+								if (type === "number") {
+									const numericValue = text.replace(/[^0-9.]/g, "");
+									field.onChange(numericValue);
+								} else {
+									field.onChange(text);
+								}
+							}}
+							placeholder={placeholder}
+							placeholderTextColor={theme.palette.text.secondary}
+							style={[styles.input, inputStyle]}
+							onFocus={handleFocus}
+							onBlur={handleBlur}
+							multiline={multiline}
+							numberOfLines={multiline ? numberOfLines : 1}
+							maxLength={maxLength}
+							autoCapitalize={getAutoCapitalize()}
+							autoCorrect={autoCorrect}
+							keyboardType={getKeyboardType()}
+							secureTextEntry={getSecureTextEntry()}
+							editable={!disabled}
+							textContentType={
+								type === "password" ? "password" : type === "email" ? "emailAddress" : "none"
+							}
+						/>
 
-/**
- * Styles
- */
-const styles = StyleSheet.create({
-  container: {
-    width: '100%',
-    marginBottom: theme.spacing.md,
-  },
-  label: {
-    ...theme.typography.subtitle2,
-    color: theme.palette.text.primary,
-    marginBottom: theme.spacing.xs,
-    fontWeight: '500',
-  },
-  labelError: {
-    color: theme.palette.error.main,
-  },
-  labelDisabled: {
-    color: theme.palette.text.disabled,
-  },
-  inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1.5,
-    borderRadius: theme.borderRadius.md,
-    paddingHorizontal: theme.spacing.md,
-    minHeight: 48,
-    backgroundColor: theme.palette.background.default,
-  },
-  inputContainerMultiline: {
-    alignItems: 'flex-start',
-    minHeight: 100,
-    paddingVertical: theme.spacing.sm,
-  },
-  leftIconContainer: {
-    marginRight: theme.spacing.sm,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  rightIconContainer: {
-    marginLeft: theme.spacing.sm,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  input: {
-    ...theme.typography.body1,
-    flex: 1,
-    color: theme.palette.text.primary,
-    paddingVertical: theme.spacing.sm,
-    minHeight: 20,
-  },
-  inputMultiline: {
-    paddingTop: theme.spacing.sm,
-    paddingBottom: theme.spacing.sm,
-    textAlignVertical: 'top',
-  },
-  inputDisabled: {
-    color: theme.palette.text.disabled,
-  },
-  helperText: {
-    ...theme.typography.caption,
-    color: theme.palette.text.secondary,
-    marginTop: theme.spacing.xs,
-    marginLeft: theme.spacing.xs,
-  },
-  errorText: {
-    color: theme.palette.error.main,
-  },
-});
+						{(type === "password" || rightIcon) && (
+							<TouchableOpacity
+								style={styles.rightIconContainer}
+								onPress={type === "password" ? togglePasswordVisibility : onRightIconPress}
+								disabled={disabled}
+							>
+								<Ionicons
+									name={
+										type === "password"
+											? showPassword
+												? "eye-off-outline"
+												: "eye-outline"
+											: (rightIcon as any)
+									}
+									size={20}
+									color={theme.palette.text.secondary}
+								/>
+							</TouchableOpacity>
+						)}
+					</View>
 
-/**
- * Default export
- */
+					{(error || helperText) && (
+						<Text style={[styles.helperText, error && styles.errorText]}>
+							{error ? error.message : helperText}
+						</Text>
+					)}
+				</Animated.View>
+			)}
+		/>
+	);
+};
+
 export default RHFTextField;

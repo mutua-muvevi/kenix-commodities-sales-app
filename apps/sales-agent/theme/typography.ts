@@ -1,326 +1,108 @@
-/**
- * Typography System for Sales Agent App
- * Defines text styles, font families, and typographic scale
- */
+import { Platform } from "react-native";
+import { Typography } from "./types/theme";
 
-import { Platform } from 'react-native';
-import { Typography, TextStyle } from './types/theme';
-import { scaleFontSize } from './utils/dimensions';
+const fontFamily = Platform.select({
+	ios: "System",
+	android: "Roboto",
+	default: "System",
+});
 
-/**
- * Font families
- */
-const fontFamily = {
-  primary: Platform.select({
-    ios: 'System',
-    android: 'Roboto',
-    default: 'System',
-  }) as string,
-  secondary: Platform.select({
-    ios: 'System',
-    android: 'Roboto',
-    default: 'System',
-  }) as string,
-};
+const fontSecondaryFamily = Platform.select({
+	ios: "System",
+	android: "Roboto",
+	default: "System",
+});
 
-/**
- * Font weights
- */
-export const fontWeights = {
-  light: '300' as const,
-  regular: '400' as const,
-  medium: '500' as const,
-  semiBold: '600' as const,
-  bold: '700' as const,
-  extraBold: '800' as const,
-};
-
-/**
- * Base font sizes (before scaling)
- */
-const baseFontSizes = {
-  h1: 32,
-  h2: 28,
-  h3: 24,
-  h4: 20,
-  h5: 18,
-  h6: 16,
-  subtitle1: 16,
-  subtitle2: 14,
-  body1: 16,
-  body2: 14,
-  button: 14,
-  caption: 12,
-  overline: 10,
-};
-
-/**
- * Line height multipliers
- */
-const lineHeightMultipliers = {
-  tight: 1.2,
-  normal: 1.5,
-  relaxed: 1.75,
-};
-
-/**
- * Calculate line height
- */
-const calculateLineHeight = (fontSize: number, multiplier: number): number => {
-  return Math.round(fontSize * multiplier);
-};
-
-/**
- * Create text style
- */
-const createTextStyle = (
-  fontSize: number,
-  fontWeight: '100' | '200' | '300' | '400' | '500' | '600' | '700' | '800' | '900',
-  lineHeightMultiplier: number,
-  letterSpacing?: number
-): TextStyle => {
-  const scaledFontSize = scaleFontSize(fontSize);
-  return {
-    fontFamily: fontFamily.primary,
-    fontSize: scaledFontSize,
-    fontWeight,
-    lineHeight: calculateLineHeight(scaledFontSize, lineHeightMultiplier),
-    letterSpacing,
-  };
-};
-
-/**
- * Typography configuration
- */
 export const typography: Typography = {
-  fontFamily,
-
-  // Headings
-  h1: createTextStyle(
-    baseFontSizes.h1,
-    fontWeights.bold,
-    lineHeightMultipliers.tight,
-    -0.5
-  ),
-
-  h2: createTextStyle(
-    baseFontSizes.h2,
-    fontWeights.bold,
-    lineHeightMultipliers.tight,
-    -0.5
-  ),
-
-  h3: createTextStyle(
-    baseFontSizes.h3,
-    fontWeights.semiBold,
-    lineHeightMultipliers.tight,
-    0
-  ),
-
-  h4: createTextStyle(
-    baseFontSizes.h4,
-    fontWeights.semiBold,
-    lineHeightMultipliers.normal,
-    0.25
-  ),
-
-  h5: createTextStyle(
-    baseFontSizes.h5,
-    fontWeights.medium,
-    lineHeightMultipliers.normal,
-    0
-  ),
-
-  h6: createTextStyle(
-    baseFontSizes.h6,
-    fontWeights.medium,
-    lineHeightMultipliers.normal,
-    0.15
-  ),
-
-  // Subtitles
-  subtitle1: createTextStyle(
-    baseFontSizes.subtitle1,
-    fontWeights.medium,
-    lineHeightMultipliers.normal,
-    0.15
-  ),
-
-  subtitle2: createTextStyle(
-    baseFontSizes.subtitle2,
-    fontWeights.medium,
-    lineHeightMultipliers.normal,
-    0.1
-  ),
-
-  // Body text
-  body1: createTextStyle(
-    baseFontSizes.body1,
-    fontWeights.regular,
-    lineHeightMultipliers.normal,
-    0.5
-  ),
-
-  body2: createTextStyle(
-    baseFontSizes.body2,
-    fontWeights.regular,
-    lineHeightMultipliers.normal,
-    0.25
-  ),
-
-  // Button text
-  button: createTextStyle(
-    baseFontSizes.button,
-    fontWeights.semiBold,
-    lineHeightMultipliers.normal,
-    0.4
-  ),
-
-  // Caption
-  caption: createTextStyle(
-    baseFontSizes.caption,
-    fontWeights.regular,
-    lineHeightMultipliers.normal,
-    0.4
-  ),
-
-  // Overline
-  overline: createTextStyle(
-    baseFontSizes.overline,
-    fontWeights.semiBold,
-    lineHeightMultipliers.normal,
-    1.5
-  ),
-};
-
-/**
- * Typography helpers
- */
-
-/**
- * Get responsive font size based on text style
- * @param variant - Typography variant
- * @returns Font size
- */
-export const getFontSize = (variant: keyof Omit<Typography, 'fontFamily'>): number => {
-  return typography[variant].fontSize;
-};
-
-/**
- * Get font weight for variant
- * @param variant - Typography variant
- * @returns Font weight
- */
-export const getFontWeight = (
-  variant: keyof Omit<Typography, 'fontFamily'>
-): '100' | '200' | '300' | '400' | '500' | '600' | '700' | '800' | '900' => {
-  return typography[variant].fontWeight;
-};
-
-/**
- * Get line height for variant
- * @param variant - Typography variant
- * @returns Line height
- */
-export const getLineHeight = (variant: keyof Omit<Typography, 'fontFamily'>): number => {
-  return typography[variant].lineHeight;
-};
-
-/**
- * Create custom typography variant
- * @param fontSize - Font size
- * @param fontWeight - Font weight
- * @param lineHeightMultiplier - Line height multiplier
- * @param letterSpacing - Letter spacing
- * @returns Text style
- */
-export const createCustomVariant = (
-  fontSize: number,
-  fontWeight: '100' | '200' | '300' | '400' | '500' | '600' | '700' | '800' | '900' = '400',
-  lineHeightMultiplier: number = 1.5,
-  letterSpacing?: number
-): TextStyle => {
-  return createTextStyle(fontSize, fontWeight, lineHeightMultiplier, letterSpacing);
-};
-
-/**
- * Typography presets for common use cases
- */
-export const typographyPresets = {
-  // Navigation
-  tabLabel: createTextStyle(10, fontWeights.medium, lineHeightMultipliers.tight, 0.5),
-  headerTitle: createTextStyle(18, fontWeights.semiBold, lineHeightMultipliers.tight, 0),
-
-  // Cards
-  cardTitle: createTextStyle(16, fontWeights.semiBold, lineHeightMultipliers.normal, 0),
-  cardSubtitle: createTextStyle(14, fontWeights.regular, lineHeightMultipliers.normal, 0),
-
-  // Lists
-  listTitle: createTextStyle(16, fontWeights.medium, lineHeightMultipliers.normal, 0),
-  listSubtitle: createTextStyle(14, fontWeights.regular, lineHeightMultipliers.normal, 0),
-
-  // Forms
-  inputLabel: createTextStyle(14, fontWeights.medium, lineHeightMultipliers.normal, 0),
-  inputText: createTextStyle(16, fontWeights.regular, lineHeightMultipliers.normal, 0),
-  inputHelper: createTextStyle(12, fontWeights.regular, lineHeightMultipliers.normal, 0),
-  inputError: createTextStyle(12, fontWeights.regular, lineHeightMultipliers.normal, 0),
-
-  // Buttons
-  buttonLarge: createTextStyle(16, fontWeights.semiBold, lineHeightMultipliers.tight, 0.5),
-  buttonMedium: createTextStyle(14, fontWeights.semiBold, lineHeightMultipliers.tight, 0.4),
-  buttonSmall: createTextStyle(12, fontWeights.semiBold, lineHeightMultipliers.tight, 0.3),
-
-  // Badges and chips
-  badge: createTextStyle(10, fontWeights.semiBold, lineHeightMultipliers.tight, 0.5),
-  chip: createTextStyle(12, fontWeights.medium, lineHeightMultipliers.tight, 0),
-
-  // Data display
-  statValue: createTextStyle(24, fontWeights.bold, lineHeightMultipliers.tight, 0),
-  statLabel: createTextStyle(12, fontWeights.medium, lineHeightMultipliers.normal, 0.5),
-
-  // Notifications
-  notificationTitle: createTextStyle(14, fontWeights.semiBold, lineHeightMultipliers.normal, 0),
-  notificationBody: createTextStyle(12, fontWeights.regular, lineHeightMultipliers.normal, 0),
-
-  // Empty states
-  emptyStateTitle: createTextStyle(18, fontWeights.semiBold, lineHeightMultipliers.normal, 0),
-  emptyStateDescription: createTextStyle(14, fontWeights.regular, lineHeightMultipliers.relaxed, 0),
-};
-
-/**
- * Text truncation helpers
- */
-export const textTruncation = {
-  singleLine: {
-    numberOfLines: 1,
-    ellipsizeMode: 'tail' as const,
-  },
-  twoLines: {
-    numberOfLines: 2,
-    ellipsizeMode: 'tail' as const,
-  },
-  threeLines: {
-    numberOfLines: 3,
-    ellipsizeMode: 'tail' as const,
-  },
-};
-
-/**
- * Text alignment helpers
- */
-export const textAlignment = {
-  left: { textAlign: 'left' as const },
-  center: { textAlign: 'center' as const },
-  right: { textAlign: 'right' as const },
-  justify: { textAlign: 'justify' as const },
-};
-
-/**
- * Text transform helpers
- */
-export const textTransform = {
-  uppercase: { textTransform: 'uppercase' as const },
-  lowercase: { textTransform: 'lowercase' as const },
-  capitalize: { textTransform: 'capitalize' as const },
-  none: { textTransform: 'none' as const },
+	fontFamily,
+	fontSecondaryFamily,
+	fontWeightRegular: 400,
+	fontWeightMedium: 500,
+	fontWeightSemiBold: 600,
+	fontWeightBold: 700,
+	h1: {
+		fontFamily,
+		fontSize: 32,
+		fontWeight: "800",
+		lineHeight: 40,
+		letterSpacing: -0.5,
+	},
+	h2: {
+		fontFamily,
+		fontSize: 28,
+		fontWeight: "800",
+		lineHeight: 36,
+		letterSpacing: -0.3,
+	},
+	h3: {
+		fontFamily,
+		fontSize: 24,
+		fontWeight: "700",
+		lineHeight: 32,
+		letterSpacing: -0.2,
+	},
+	h4: {
+		fontFamily,
+		fontSize: 20,
+		fontWeight: "700",
+		lineHeight: 28,
+		letterSpacing: -0.1,
+	},
+	h5: {
+		fontFamily,
+		fontSize: 18,
+		fontWeight: "600",
+		lineHeight: 24,
+	},
+	h6: {
+		fontFamily,
+		fontSize: 16,
+		fontWeight: "600",
+		lineHeight: 22,
+	},
+	subtitle1: {
+		fontFamily,
+		fontSize: 16,
+		fontWeight: "500",
+		lineHeight: 24,
+	},
+	subtitle2: {
+		fontFamily,
+		fontSize: 14,
+		fontWeight: "500",
+		lineHeight: 20,
+	},
+	body1: {
+		fontFamily,
+		fontSize: 16,
+		fontWeight: "400",
+		lineHeight: 24,
+	},
+	body2: {
+		fontFamily,
+		fontSize: 14,
+		fontWeight: "400",
+		lineHeight: 20,
+	},
+	caption: {
+		fontFamily,
+		fontSize: 12,
+		fontWeight: "400",
+		lineHeight: 16,
+	},
+	overline: {
+		fontFamily,
+		fontSize: 12,
+		fontWeight: "700",
+		lineHeight: 16,
+		textTransform: "uppercase",
+		letterSpacing: 1,
+	},
+	button: {
+		fontFamily,
+		fontSize: 14,
+		fontWeight: "600",
+		lineHeight: 20,
+		textTransform: "none",
+	},
 };

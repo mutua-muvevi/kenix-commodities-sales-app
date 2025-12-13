@@ -1,220 +1,79 @@
-/**
- * Card Component
- * A flexible container component with elevation and press feedback.
- *
- * Features:
- * - Multiple variants (default, elevated, outlined)
- * - Optional press feedback
- * - Theme-aware shadows
- * - Customizable styling
- * - Press animations
- *
- * @example
- * ```tsx
- * <Card variant="elevated" onPress={() => console.log('Pressed')}>
- *   <Text>Card Content</Text>
- * </Card>
- * ```
- */
+// components/ui/Card.tsx - Enhanced with shadows and animations
+import React, { ReactNode } from "react";
+import { ViewStyle, StyleSheet } from "react-native";
+import Animated, { FadeInDown, Layout } from "react-native-reanimated";
+import { useTheme } from "../../hooks/useTheme";
 
-import React, { useCallback } from 'react';
-import {
-  TouchableOpacity,
-  View,
-  StyleSheet,
-  ViewStyle,
-  GestureResponderEvent,
-} from 'react-native';
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
-  withTiming,
-} from 'react-native-reanimated';
-import * as Haptics from 'expo-haptics';
-import { theme } from '@/theme';
-
-const AnimatedTouchableOpacity = Animated.createAnimatedComponent(TouchableOpacity);
-
-export interface CardProps {
-  /**
-   * Card variant style
-   * @default 'default'
-   */
-  variant?: 'default' | 'elevated' | 'outlined';
-
-  /**
-   * Press handler - makes card touchable
-   */
-  onPress?: (event: GestureResponderEvent) => void;
-
-  /**
-   * Card content
-   */
-  children: React.ReactNode;
-
-  /**
-   * Custom container style
-   */
-  style?: ViewStyle;
-
-  /**
-   * Disable card interaction
-   * @default false
-   */
-  disabled?: boolean;
-
-  /**
-   * Test ID for testing
-   */
-  testID?: string;
-
-  /**
-   * Accessibility label
-   */
-  accessibilityLabel?: string;
+interface CardProps {
+	children: ReactNode;
+	variant?: "default" | "elevated" | "outlined" | "glass";
+	style?: ViewStyle;
+	padding?: number;
+	onPress?: () => void;
+	animateOnMount?: boolean;
+	delay?: number;
 }
 
-/**
- * Card Component
- */
 export const Card: React.FC<CardProps> = ({
-  variant = 'default',
-  onPress,
-  children,
-  style,
-  disabled = false,
-  testID,
-  accessibilityLabel,
+	children,
+	variant = "default",
+	style,
+	padding,
+	onPress,
+	animateOnMount = false,
+	delay = 0,
 }) => {
-  // Animation values
-  const scale = useSharedValue(1);
-  const elevation = useSharedValue(getInitialElevation(variant));
+	const { theme } = useTheme();
 
-  // Get initial elevation based on variant
-  function getInitialElevation(v: 'default' | 'elevated' | 'outlined'): number {
-    switch (v) {
-      case 'elevated':
-        return 8;
-      case 'outlined':
-        return 0;
-      case 'default':
-      default:
-        return 4;
-    }
-  }
+	const getCardStyle = (): ViewStyle => {
+		const baseStyle: ViewStyle = {
+			backgroundColor: theme.palette.background.paper,
+			borderRadius: theme.borderRadius.lg,
+			padding: padding !== undefined ? padding : theme.spacing.md,
+		};
 
-  // Handle press in
-  const handlePressIn = useCallback(() => {
-    if (disabled || !onPress) return;
+		const variantStyles = {
+			default: {
+				...theme.shadows.card,
+			},
+			elevated: {
+				...theme.shadows.z8,
+				backgroundColor: theme.palette.background.surface,
+			},
+			outlined: {
+				borderWidth: 1,
+				borderColor: theme.palette.divider,
+				backgroundColor: theme.palette.background.surface,
+			},
+			glass: {
+				backgroundColor: theme.palette.mode === "dark" ? "rgba(255,255,255,0.1)" : "rgba(255,255,255,0.8)",
+				backdropFilter: "blur(20px)",
+				borderWidth: 1,
+				borderColor: theme.palette.mode === "dark" ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)",
+			},
+		};
 
-    // Haptic feedback
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+		return { ...baseStyle, ...variantStyles[variant] };
+	};
 
-    // Scale down animation
-    scale.value = withSpring(0.98, {
-      damping: 20,
-      stiffness: 400,
-    });
+	const CardComponent = onPress ? Animated.createAnimatedComponent(Animated.View) : Animated.View;
 
-    // Reduce elevation
-    elevation.value = withTiming(2, { duration: 150 });
-  }, [disabled, onPress, scale, elevation]);
+	if (animateOnMount) {
+		return (
+			<CardComponent
+				entering={FadeInDown.delay(delay).springify()}
+				layout={Layout.springify()}
+				style={[getCardStyle(), style]}
+				onTouchEnd={onPress}
+			>
+				{children}
+			</CardComponent>
+		);
+	}
 
-  // Handle press out
-  const handlePressOut = useCallback(() => {
-    if (disabled || !onPress) return;
-
-    // Scale back animation
-    scale.value = withSpring(1, {
-      damping: 20,
-      stiffness: 400,
-    });
-
-    // Restore elevation
-    const initialElevation = getInitialElevation(variant);
-    elevation.value = withTiming(initialElevation, { duration: 150 });
-  }, [disabled, onPress, scale, elevation, variant]);
-
-  // Handle press
-  const handlePress = useCallback(
-    (event: GestureResponderEvent) => {
-      if (disabled || !onPress) return;
-
-      // Medium haptic feedback
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      onPress(event);
-    },
-    [disabled, onPress]
-  );
-
-  // Animated style
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-  }));
-
-  // Get variant styles
-  const getVariantStyles = (): ViewStyle => {
-    switch (variant) {
-      case 'elevated':
-        return {
-          backgroundColor: theme.palette.background.default,
-          ...theme.shadows.z8,
-        };
-
-      case 'outlined':
-        return {
-          backgroundColor: theme.palette.background.default,
-          borderWidth: 1,
-          borderColor: theme.palette.divider,
-        };
-
-      case 'default':
-      default:
-        return {
-          backgroundColor: theme.palette.background.default,
-          ...theme.shadows.z4,
-        };
-    }
-  };
-
-  // If not pressable, render as View
-  if (!onPress) {
-    return (
-      <View
-        style={[styles.container, getVariantStyles(), style]}
-        testID={testID}
-      >
-        {children}
-      </View>
-    );
-  }
-
-  // Render as TouchableOpacity with animations
-  return (
-    <AnimatedTouchableOpacity
-      style={[styles.container, getVariantStyles(), animatedStyle, style]}
-      onPress={handlePress}
-      onPressIn={handlePressIn}
-      onPressOut={handlePressOut}
-      disabled={disabled}
-      activeOpacity={0.9}
-      accessibilityLabel={accessibilityLabel}
-      accessibilityRole="button"
-      accessibilityState={{ disabled }}
-      testID={testID}
-    >
-      {children}
-    </AnimatedTouchableOpacity>
-  );
+	return (
+		<CardComponent style={[getCardStyle(), style]} onTouchEnd={onPress}>
+			{children}
+		</CardComponent>
+	);
 };
-
-const styles = StyleSheet.create({
-  container: {
-    borderRadius: theme.borderRadius.lg,
-    padding: theme.spacing.md,
-    marginVertical: theme.spacing.xs,
-  },
-});
-
-export default Card;

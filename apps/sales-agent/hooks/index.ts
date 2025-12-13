@@ -1,38 +1,9 @@
-/**
- * Custom Hooks for Sales Agent App
- *
- * Centralized export for all custom hooks used throughout the application.
- * These hooks provide reusable logic for common patterns like debouncing,
- * theming, permissions, and data fetching.
- */
+export { useTheme } from "./useTheme";
+export { useDebounce } from "./useDebounce";
 
-// Debounce and throttle hooks
-export {
-  useDebounce,
-  useDebouncedCallback,
-  useThrottle,
-} from './useDebounce';
-
-// Theme hooks
-export {
-  useTheme,
-  useThemeStyles,
-  createTheme,
-  type Theme,
-} from './useTheme';
-
-// Permission hooks
-export {
-  usePermissions,
-  useLocationPermission,
-  useCameraPermission,
-  type PermissionStatus,
-} from './usePermissions';
-
-// Refresh and async data hooks
-export {
-  useRefresh,
-  useAsyncData,
-  usePaginatedData,
-  usePolling,
-} from './useRefresh';
+// Re-export store hooks for convenience
+export { useAuth } from "../store/hooks/use-auth";
+export { useCart } from "../store/hooks/use-cart";
+export { useProducts } from "../store/hooks/use-products";
+export { useCategories } from "../store/hooks/use-categories";
+export { useFavorites } from "../store/hooks/use-favorites";
