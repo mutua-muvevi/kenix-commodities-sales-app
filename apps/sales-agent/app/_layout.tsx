@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Slot, useRouter, useSegments } from 'expo-router';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import Toast from 'react-native-toast-message';
@@ -10,13 +10,21 @@ export default function RootLayout() {
   const segments = useSegments();
   const router = useRouter();
   const { isAuthenticated, isLoading, loadStoredAuth } = useAuthStore();
+  const [isLayoutReady, setIsLayoutReady] = useState(false);
 
+  // Load stored auth on mount
   useEffect(() => {
     loadStoredAuth();
   }, []);
 
+  // Mark layout as ready after first render
   useEffect(() => {
-    if (isLoading) return;
+    setIsLayoutReady(true);
+  }, []);
+
+  // Handle navigation after layout is ready
+  useEffect(() => {
+    if (!isLayoutReady || isLoading) return;
 
     const inAuthGroup = segments[0] === '(auth)';
 
@@ -32,7 +40,7 @@ export default function RootLayout() {
       // Connect to WebSocket when authenticated
       websocketService.connect();
     }
-  }, [isAuthenticated, isLoading, segments]);
+  }, [isAuthenticated, isLoading, segments, isLayoutReady]);
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
