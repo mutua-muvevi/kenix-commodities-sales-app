@@ -1,26 +1,8 @@
 import { Redirect } from 'expo-router';
-import { useAuthStore } from '../store/authStore';
-import { View, ActivityIndicator, StyleSheet } from 'react-native';
 
+// TEMPORARY: Bypass authentication for UI/UX testing
+// TODO: Re-enable authentication when sales agent users are created
 export default function Index() {
-  const { isAuthenticated, isLoading } = useAuthStore();
-
-  if (isLoading) {
-    return (
-      <View style={styles.container}>
-        <ActivityIndicator size="large" color="#22c55e" />
-      </View>
-    );
-  }
-
-  return <Redirect href={isAuthenticated ? '/(tabs)/dashboard' : '/(auth)/login'} />;
+  // Always redirect to dashboard for now
+  return <Redirect href="/(tabs)/dashboard" />;
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-  },
-});

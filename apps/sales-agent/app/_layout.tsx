@@ -7,40 +7,19 @@ import websocketService from '../services/websocket';
 import { toastConfig } from '../components/ToastConfig';
 
 export default function RootLayout() {
-  const segments = useSegments();
-  const router = useRouter();
-  const { isAuthenticated, isLoading, loadStoredAuth } = useAuthStore();
-  const [isLayoutReady, setIsLayoutReady] = useState(false);
+  // TEMPORARY: Bypass authentication for UI/UX testing
+  // TODO: Re-enable authentication when sales agent users are created
 
-  // Load stored auth on mount
+  // const segments = useSegments();
+  // const router = useRouter();
+  // const { isAuthenticated, isLoading, loadStoredAuth } = useAuthStore();
+  // const [isLayoutReady, setIsLayoutReady] = useState(false);
+
+  // Connect to WebSocket for real-time features (optional for now)
   useEffect(() => {
-    loadStoredAuth();
+    // websocketService.connect();
+    // return () => websocketService.disconnect();
   }, []);
-
-  // Mark layout as ready after first render
-  useEffect(() => {
-    setIsLayoutReady(true);
-  }, []);
-
-  // Handle navigation after layout is ready
-  useEffect(() => {
-    if (!isLayoutReady || isLoading) return;
-
-    const inAuthGroup = segments[0] === '(auth)';
-
-    if (!isAuthenticated && !inAuthGroup) {
-      // Redirect to login
-      router.replace('/(auth)/login');
-      // Disconnect WebSocket if logged out
-      websocketService.disconnect();
-    } else if (isAuthenticated && inAuthGroup) {
-      // Redirect to dashboard
-      router.replace('/(tabs)/dashboard');
-    } else if (isAuthenticated) {
-      // Connect to WebSocket when authenticated
-      websocketService.connect();
-    }
-  }, [isAuthenticated, isLoading, segments, isLayoutReady]);
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
