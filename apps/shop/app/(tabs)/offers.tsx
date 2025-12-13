@@ -56,6 +56,14 @@ const OffersScreen = () => {
 	const [selectedCategory, setSelectedCategory] = useState<string>("all");
 	const carouselProgress = useSharedValue(0);
 
+	// Flash Sale carousel refs and state
+	const flashSaleRef = useRef<FlatList>(null);
+	const [flashSaleIndex, setFlashSaleIndex] = useState(0);
+
+	// Weekly Specials carousel refs and state
+	const weeklySpecialsRef = useRef<FlatList>(null);
+	const [weeklySpecialsIndex, setWeeklySpecialsIndex] = useState(0);
+
 	// Auto-scroll animation for carousel
 	useEffect(() => {
 		carouselProgress.value = withRepeat(
@@ -71,6 +79,44 @@ const OffersScreen = () => {
 			fetchAllProducts();
 		}
 	}, []);
+
+	// Auto-scroll Flash Sale carousel
+	useEffect(() => {
+		const flashSaleProducts = allProducts.products.slice(0, 10);
+		if (flashSaleProducts.length === 0) return;
+
+		const interval = setInterval(() => {
+			setFlashSaleIndex((prevIndex) => {
+				const nextIndex = (prevIndex + 1) % flashSaleProducts.length;
+				flashSaleRef.current?.scrollToIndex({
+					index: nextIndex,
+					animated: true,
+				});
+				return nextIndex;
+			});
+		}, 3000); // Auto-scroll every 3 seconds
+
+		return () => clearInterval(interval);
+	}, [allProducts.products]);
+
+	// Auto-scroll Weekly Specials carousel
+	useEffect(() => {
+		const weeklyProducts = allProducts.products.slice(6, 16);
+		if (weeklyProducts.length === 0) return;
+
+		const interval = setInterval(() => {
+			setWeeklySpecialsIndex((prevIndex) => {
+				const nextIndex = (prevIndex + 1) % weeklyProducts.length;
+				weeklySpecialsRef.current?.scrollToIndex({
+					index: nextIndex,
+					animated: true,
+				});
+				return nextIndex;
+			});
+		}, 3500); // Slightly different interval for variety
+
+		return () => clearInterval(interval);
+	}, [allProducts.products]);
 
 	// Deal of the Day - changes daily
 	const dealOfTheDay = allProducts.products[0];
@@ -138,8 +184,8 @@ const OffersScreen = () => {
 		product.name.toLowerCase().includes(searchQuery.toLowerCase())
 	);
 
-	const flashSaleProducts = filteredProducts.slice(0, 6);
-	const weeklySpecials = filteredProducts.slice(6, 12);
+	const flashSaleProducts = filteredProducts.slice(0, 10);
+	const weeklySpecials = filteredProducts.slice(6, 16);
 
 	const styles = StyleSheet.create({
 		scrollView: {
@@ -649,7 +695,7 @@ const OffersScreen = () => {
 						</ScrollView>
 					</Animated.View>
 
-					{/* Flash Sale Section */}
+					{/* Flash Sale Section - Horizontal Carousel */}
 					<Animated.View entering={FadeInUp.delay(400).springify()}>
 						<View style={styles.sectionHeader}>
 							<View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
@@ -658,7 +704,7 @@ const OffersScreen = () => {
 									size={20}
 									color={theme.palette.error.main}
 								/>
-								<Text style={styles.sectionTitle}>Flash Sale</Text>
+								<Text style={styles.sectionTitle}>⚡ Flash Sale</Text>
 							</View>
 							<TouchableOpacity>
 								<Text style={styles.sectionViewAll}>View All</Text>
@@ -667,24 +713,35 @@ const OffersScreen = () => {
 
 						{flashSaleProducts.length > 0 ? (
 							<FlatList
+								ref={flashSaleRef}
 								data={flashSaleProducts}
-								renderItem={renderProductItem}
-								keyExtractor={(item) => item._id}
-								numColumns={2}
-								scrollEnabled={false}
-								showsVerticalScrollIndicator={false}
-								columnWrapperStyle={{
-									justifyContent: "space-between",
-									paddingHorizontal: theme.spacing.md,
+								renderItem={({ item, index }) => (
+									<View style={{ width: SCREEN_WIDTH * 0.42, marginRight: 12 }}>
+										<ProductCard product={item} index={index} />
+									</View>
+								)}
+								keyExtractor={(item) => `flash-${item._id}`}
+								horizontal
+								showsHorizontalScrollIndicator={false}
+								contentContainerStyle={{ paddingHorizontal: 12 }}
+								snapToInterval={SCREEN_WIDTH * 0.42 + 12}
+								decelerationRate="fast"
+								pagingEnabled={false}
+								onScrollToIndexFailed={(info) => {
+									setTimeout(() => {
+										flashSaleRef.current?.scrollToIndex({
+											index: info.index,
+											animated: true,
+										});
+									}, 100);
 								}}
-								contentContainerStyle={{ gap: theme.spacing.md }}
 							/>
 						) : (
 							<EmptyOffersComponent />
 						)}
 					</Animated.View>
 
-					{/* Weekly Specials Section */}
+					{/* Weekly Specials Section - Horizontal Carousel */}
 					<Animated.View entering={FadeInUp.delay(500).springify()}>
 						<View style={styles.sectionHeader}>
 							<View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
@@ -693,7 +750,7 @@ const OffersScreen = () => {
 									size={20}
 									color={theme.palette.success.main}
 								/>
-								<Text style={styles.sectionTitle}>Weekly Specials</Text>
+								<Text style={styles.sectionTitle}>📅 Weekly Specials</Text>
 							</View>
 							<TouchableOpacity>
 								<Text style={styles.sectionViewAll}>View All</Text>
@@ -702,17 +759,28 @@ const OffersScreen = () => {
 
 						{weeklySpecials.length > 0 ? (
 							<FlatList
+								ref={weeklySpecialsRef}
 								data={weeklySpecials}
-								renderItem={renderProductItem}
-								keyExtractor={(item) => item._id}
-								numColumns={2}
-								scrollEnabled={false}
-								showsVerticalScrollIndicator={false}
-								columnWrapperStyle={{
-									justifyContent: "space-between",
-									paddingHorizontal: theme.spacing.md,
+								renderItem={({ item, index }) => (
+									<View style={{ width: SCREEN_WIDTH * 0.42, marginRight: 12 }}>
+										<ProductCard product={item} index={index} />
+									</View>
+								)}
+								keyExtractor={(item) => `weekly-${item._id}`}
+								horizontal
+								showsHorizontalScrollIndicator={false}
+								contentContainerStyle={{ paddingHorizontal: 12 }}
+								snapToInterval={SCREEN_WIDTH * 0.42 + 12}
+								decelerationRate="fast"
+								pagingEnabled={false}
+								onScrollToIndexFailed={(info) => {
+									setTimeout(() => {
+										weeklySpecialsRef.current?.scrollToIndex({
+											index: info.index,
+											animated: true,
+										});
+									}, 100);
 								}}
-								contentContainerStyle={{ gap: theme.spacing.md }}
 							/>
 						) : (
 							<EmptyOffersComponent />
