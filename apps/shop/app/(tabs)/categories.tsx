@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { View, Text, StyleSheet, Alert } from "react-native";
+import { useRouter } from "expo-router";
+import * as Haptics from "expo-haptics";
 import { SafeArea, Container } from "../../components/layout";
 import { SearchBar } from "../../components/ui";
 import { CategoryGrid } from "../../components/category/CategoryGrid";
@@ -9,6 +11,7 @@ import { Category } from "../../store/types/product";
 
 const CategoriesScreen = () => {
 	const { theme } = useTheme();
+	const router = useRouter();
 	const { categories, isLoadingCategories, error, fetchCategories, hasCategories, categoryCount } = useCategories();
 
 	const [searchQuery, setSearchQuery] = useState("");
@@ -32,8 +35,13 @@ const CategoriesScreen = () => {
 	};
 
 	const handleCategoryPress = (category: Category) => {
-		console.log("Category pressed:", category.name);
-		// Navigate to category products
+		try {
+			Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+			console.log("Category pressed:", category.name, "ID:", category._id);
+			router.push(`/category/${category._id}`);
+		} catch (error) {
+			console.error("Category navigation error:", error);
+		}
 	};
 
 	const filteredCategories = searchQuery
